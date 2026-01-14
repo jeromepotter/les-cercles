@@ -109,6 +109,23 @@
             cursor: pointer;
         }
 
+        .volume-control {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .volume-control label {
+            font-size: 0.7em;
+            letter-spacing: 1px;
+            opacity: 0.7;
+            white-space: nowrap;
+        }
+
+        .volume-control input[type=range] {
+            width: 90px;
+        }
+
         /* CONTROLS BAR */
         #controls-bar {
             position: absolute;
@@ -379,6 +396,7 @@
             
             input[type=range] { width: 70px; }
             .macro-slider-container label { font-size: 0.55em !important; }
+            .volume-control input[type=range] { width: 70px; }
 
             .btn-text {
                 font-size: 0.7em;
@@ -414,14 +432,18 @@
         <div id="hud-top">
             <h1 class="title">LES CERCLES</h1>
             <div class="hud-item" onclick="toggleAudio()">AUDIO: <span id="audio-label">ON</span></div>
-            
+            <div class="hud-item" onclick="openGlobal()">SETTINGS</div>
+
             <div class="hud-item">
                 <select id="midi-select" class="midi-select" onchange="MidiEngine.selectOutput(this.value)">
                     <option value="">MIDI...</option>
                 </select>
             </div>
 
-            <div class="hud-item" onclick="openGlobal()">SETTINGS</div>
+            <div class="hud-item volume-control">
+                <label for="volume-range">VOL <span id="volume-label">50%</span></label>
+                <input id="volume-range" type="range" min="0" max="2" step="0.01" value="0.5" oninput="updateMasterVolume(this.value)">
+            </div>
         </div>
 
         <canvas id="mainCanvas"></canvas>
@@ -596,6 +618,7 @@ const STATE = {
     isRunning: false,
     isPaused: false,
     audioEnabled: true,
+    masterVolume: 0.5,
     planets: [],
     triggers: [{ id: 1, angle: Math.random() * Math.PI * 2, shift: 0 }],
     orbitRadius: 200, 
@@ -775,7 +798,7 @@ const AudioEngine = (() => {
             limiter.release.value = 0.1;
             
             masterGain = ctx.createGain();
-            masterGain.gain.value = 0.05; 
+            masterGain.gain.value = STATE.audioEnabled ? STATE.masterVolume : 0; 
 
             masterGain.connect(limiter);
             limiter.connect(ctx.destination);
@@ -783,10 +806,16 @@ const AudioEngine = (() => {
         if(ctx.state === 'suspended') ctx.resume();
     }
 
+    function setVolume(value) {
+        if(!ctx || !masterGain) return;
+        const target = STATE.audioEnabled ? value : 0;
+        masterGain.gain.setTargetAtTime(target, ctx.currentTime, 0.05);
+    }
+
     function toggle() {
         if(!ctx) init();
         STATE.audioEnabled = !STATE.audioEnabled;
-        if(masterGain) masterGain.gain.setTargetAtTime(STATE.audioEnabled ? 0.3 : 0, ctx.currentTime, 0.1);
+        setVolume(STATE.masterVolume);
         document.getElementById('audio-label').innerText = STATE.audioEnabled ? "ON" : "OFF";
     }
 
@@ -825,7 +854,7 @@ const AudioEngine = (() => {
         osc.stop(t + 1.3);
     }
 
-    return { init, toggle, playNote };
+    return { init, toggle, playNote, setVolume };
 })();
 
 /**
@@ -834,6 +863,7 @@ const AudioEngine = (() => {
 const MidiEngine = (() => {
     let access = null;
     let selectedOutput = null;
+    let selectedOutputId = "";
 
     async function init() {
         if(!navigator.requestMIDIAccess) return;
@@ -848,17 +878,31 @@ const MidiEngine = (() => {
         const sel = document.getElementById('midi-select');
         sel.innerHTML = '<option value="">MIDI...</option>';
         if(!access) return;
+        const currentId = selectedOutputId || sel.value;
+        let matched = false;
         const iter = access.outputs.values();
         for(let o = iter.next(); !o.done; o = iter.next()) {
             const opt = document.createElement('option');
             opt.value = o.value.id;
             opt.innerText = o.value.name;
+            if(currentId && o.value.id === currentId) {
+                opt.selected = true;
+                selectedOutput = o.value;
+                selectedOutputId = currentId;
+                matched = true;
+            }
             sel.appendChild(opt);
+        }
+        if(!matched) {
+            selectedOutput = null;
+            selectedOutputId = "";
         }
     }
 
     function selectOutput(id) {
         if(!access) return;
+        selectedOutputId = id;
+        selectedOutput = null;
         const iter = access.outputs.values();
         for(let o = iter.next(); !o.done; o = iter.next()) {
             if(o.value.id === id) selectedOutput = o.value;
@@ -918,6 +962,14 @@ window.addEventListener('resize', resize);
 resize();
 
 function toggleAudio() { AudioEngine.toggle(); }
+
+function updateMasterVolume(value) {
+    const volume = parseFloat(value);
+    STATE.masterVolume = volume;
+    const label = document.getElementById('volume-label');
+    if (label) label.innerText = `${Math.round(volume * 100)}%`;
+    AudioEngine.setVolume(volume);
+}
 
 function updatePlayButton() {
     const btn = document.getElementById('btn-play');
