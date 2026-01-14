@@ -1073,13 +1073,13 @@ function finishCustomScale() {
 
 /* SLINGSHOT LOGIC */
 function toggleSlingshot() {
-    STATE.slingshot.active = !STATE.slingshot.active;
     if (STATE.slingshot.active) {
         openOrbPanel();
-    } else if (document.getElementById('orb-panel').style.display === 'block') {
-        STATE.orbPanelPrevSlingshot = null;
-        closePanel('orb-panel');
+        return;
     }
+
+    STATE.slingshot.active = true;
+    openOrbPanel();
 }
 
 function savePattern() {
@@ -1178,6 +1178,10 @@ function playOrbNote(orb) {
 
 function assignOrbPitch(orb) {
     orb.pitch = MusicTheory.getRandomNoteInRange(STATE.root, STATE.scale, 2, 5);
+}
+
+function getRandomPaletteColor() {
+    return PALETTE[Math.floor(Math.random() * PALETTE.length)];
 }
 
 function updateGlobalTranspose(val) {
@@ -1644,7 +1648,7 @@ function handleEnd() {
                 y: centerY,
                 vx: dx * power,
                 vy: dy * power,
-                color: STATE.centerColor,
+                color: getRandomPaletteColor(),
                 pitch: STATE.orbSettings.triggerMode === 'notes'
                     ? null
                     : MusicTheory.getRandomNoteInRange(STATE.root, STATE.scale, 2, 5),
@@ -1794,6 +1798,10 @@ function loop(time) {
                 orbA.y -= ny * overlap;
                 orbB.x += nx * overlap;
                 orbB.y += ny * overlap;
+                if (STATE.orbSettings.triggerMode !== 'notes') {
+                    assignOrbPitch(orbA);
+                    assignOrbPitch(orbB);
+                }
             }
         }
     }
