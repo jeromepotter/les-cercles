@@ -511,10 +511,6 @@
                     <option value="circle">CIRCLE</option>
                 </select>
             </div>
-            <div class="control-row" id="o-pitch-row">
-                <label>Pitch</label>
-                <select id="o-pitch"></select>
-            </div>
             <div class="control-row">
                 <label>Collision</label>
                 <input type="checkbox" id="o-collision">
@@ -616,9 +612,8 @@ const STATE = {
     slingshot: { active: false, isDragging: false, pullX: 0, pullY: 0 },
     centerColor: 'var(--ink-color)',
     orbPanelPrevSlingshot: null,
-    orbDefaults: {
+    orbSettings: {
         triggerMode: 'notes',
-        pitch: 'C4',
         collision: false,
         velocity: 0.7
     }
@@ -1080,7 +1075,7 @@ function finishCustomScale() {
 function toggleSlingshot() {
     STATE.slingshot.active = !STATE.slingshot.active;
     if (STATE.slingshot.active) {
-        openOrbPanel(null);
+        openOrbPanel();
     } else if (document.getElementById('orb-panel').style.display === 'block') {
         STATE.orbPanelPrevSlingshot = null;
         closePanel('orb-panel');
@@ -1181,6 +1176,10 @@ function playOrbNote(orb) {
     MidiEngine.sendNote(orb.pitch, velocity);
 }
 
+function assignOrbPitch(orb) {
+    orb.pitch = MusicTheory.getRandomNoteInRange(STATE.root, STATE.scale, 2, 5);
+}
+
 function updateGlobalTranspose(val) {
     pushUndoState();
     STATE.gateTranspose = clampShift(parseInt(val, 10) || 0);
@@ -1265,58 +1264,18 @@ function openTrigger(t) {
     document.getElementById('trigger-panel').style.display = 'block';
 }
 
-function populateOrbPitchOptions(selectedPitch) {
-    const pitchSel = document.getElementById('o-pitch');
-    pitchSel.innerHTML = '';
-    const notes = MusicTheory.getNotes(STATE.root, STATE.scale);
-    let hasSelected = false;
-    notes.forEach(n => {
-        const opt = document.createElement('option');
-        opt.value = n;
-        opt.innerText = n;
-        if (n === selectedPitch) {
-            opt.selected = true;
-            hasSelected = true;
-        }
-        pitchSel.appendChild(opt);
-    });
-    if (!hasSelected && selectedPitch) {
-        const opt = document.createElement('option');
-        opt.value = selectedPitch;
-        opt.innerText = selectedPitch;
-        opt.selected = true;
-        pitchSel.prepend(opt);
-    }
-}
-
-function updateOrbPitchVisibility(mode) {
-    const pitchRow = document.getElementById('o-pitch-row');
-    pitchRow.style.display = mode === 'notes' ? 'none' : 'flex';
-}
-
-function getActiveOrbSettings() {
-    if (!STATE.editingOrbId) return STATE.orbDefaults;
-    const orb = STATE.projectiles.find(x => x.id === STATE.editingOrbId);
-    return orb || STATE.orbDefaults;
-}
-
-function openOrbPanel(orb) {
+function openOrbPanel() {
     closePanel('planet-panel');
     closePanel('trigger-panel');
-    STATE.editingOrbId = orb ? orb.id : null;
+    STATE.editingOrbId = null;
     const panel = document.getElementById('orb-panel');
     const triggerSel = document.getElementById('o-trigger');
     const collisionToggle = document.getElementById('o-collision');
 
-    const target = orb || STATE.orbDefaults;
+    const target = STATE.orbSettings;
     if (!target.triggerMode) target.triggerMode = 'notes';
-    if (!target.pitch) {
-        target.pitch = MusicTheory.getRandomNoteInRange(STATE.root, STATE.scale, 3, 5);
-    }
 
     triggerSel.value = target.triggerMode;
-    populateOrbPitchOptions(target.pitch);
-    updateOrbPitchVisibility(target.triggerMode);
     collisionToggle.checked = !!target.collision;
 
     if (STATE.orbPanelPrevSlingshot === null) {
@@ -1422,19 +1381,11 @@ document.getElementById('p-note').onchange = (e) => {
 };
 
 document.getElementById('o-trigger').onchange = (e) => {
-    const orb = getActiveOrbSettings();
-    orb.triggerMode = e.target.value;
-    updateOrbPitchVisibility(orb.triggerMode);
-};
-
-document.getElementById('o-pitch').onchange = (e) => {
-    const orb = getActiveOrbSettings();
-    orb.pitch = e.target.value;
+    STATE.orbSettings.triggerMode = e.target.value;
 };
 
 document.getElementById('o-collision').onchange = (e) => {
-    const orb = getActiveOrbSettings();
-    orb.collision = e.target.checked;
+    STATE.orbSettings.collision = e.target.checked;
 };
 
 function updatePlanetRPM(inputVal) {
@@ -1694,11 +1645,11 @@ function handleEnd() {
                 vx: dx * power,
                 vy: dy * power,
                 color: STATE.centerColor,
-                triggerMode: STATE.orbDefaults.triggerMode,
-                pitch: STATE.orbDefaults.pitch,
-                collision: STATE.orbDefaults.collision,
+                pitch: STATE.orbSettings.triggerMode === 'notes'
+                    ? null
+                    : MusicTheory.getRandomNoteInRange(STATE.root, STATE.scale, 2, 5),
                 cooldown: 0,
-                velocity: STATE.orbDefaults.velocity
+                velocity: STATE.orbSettings.velocity
             });
         }
     }
@@ -1708,7 +1659,7 @@ function handleEnd() {
         if (duration < 300) { 
             if (dragTarget.type === 'trigger') openTrigger(dragTarget.obj);
             if (dragTarget.type === 'planet') openPlanet(dragTarget.obj);
-            if (dragTarget.type === 'orb') openOrbPanel(dragTarget.obj);
+            if (dragTarget.type === 'orb') openOrbPanel();
         }
     }
     isDragging = false;
@@ -1772,13 +1723,17 @@ function loop(time) {
             orb.x = centerX + nx * limit;
             orb.y = centerY + ny * limit;
 
-            if (orb.triggerMode === 'circle' && orb.cooldown <= 0) {
-                playOrbNote(orb);
-                orb.cooldown = 0.2;
+            if (STATE.orbSettings.triggerMode === 'circle') {
+                if (!orb.pitch) assignOrbPitch(orb);
+                if (orb.cooldown <= 0) {
+                    playOrbNote(orb);
+                    orb.cooldown = 0.2;
+                }
             }
         }
 
-        if (orb.triggerMode === 'gates') {
+        if (STATE.orbSettings.triggerMode === 'gates') {
+            if (!orb.pitch) assignOrbPitch(orb);
             for (const tObj of STATE.triggers) {
                 const tx = centerX + Math.cos(tObj.angle) * STATE.orbitRadius;
                 const ty = centerY + Math.sin(tObj.angle) * STATE.orbitRadius;
@@ -1792,7 +1747,7 @@ function loop(time) {
         }
 
         // Collision Check with Planets
-        if (orb.triggerMode === 'notes') {
+        if (STATE.orbSettings.triggerMode === 'notes') {
             STATE.planets.forEach(p => {
                 if(p.cooldown > 0) p.cooldown -= dt; 
 
@@ -1812,33 +1767,34 @@ function loop(time) {
         }
     });
 
-    for (let i = 0; i < STATE.projectiles.length; i++) {
-        const orbA = STATE.projectiles[i];
-        for (let j = i + 1; j < STATE.projectiles.length; j++) {
-            const orbB = STATE.projectiles[j];
-            if (!orbA.collision && !orbB.collision) continue;
-            const dx = orbB.x - orbA.x;
-            const dy = orbB.y - orbA.y;
-            const dist = Math.sqrt(dx * dx + dy * dy);
-            const minDist = 10;
-            if (dist === 0 || dist >= minDist) continue;
+    if (STATE.orbSettings.collision) {
+        for (let i = 0; i < STATE.projectiles.length; i++) {
+            const orbA = STATE.projectiles[i];
+            for (let j = i + 1; j < STATE.projectiles.length; j++) {
+                const orbB = STATE.projectiles[j];
+                const dx = orbB.x - orbA.x;
+                const dy = orbB.y - orbA.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                const minDist = 10;
+                if (dist === 0 || dist >= minDist) continue;
 
-            const nx = dx / dist;
-            const ny = dy / dist;
-            const rv = (orbA.vx - orbB.vx) * nx + (orbA.vy - orbB.vy) * ny;
-            if (rv > 0) {
-                const impulse = rv;
-                orbA.vx -= impulse * nx;
-                orbA.vy -= impulse * ny;
-                orbB.vx += impulse * nx;
-                orbB.vy += impulse * ny;
+                const nx = dx / dist;
+                const ny = dy / dist;
+                const rv = (orbA.vx - orbB.vx) * nx + (orbA.vy - orbB.vy) * ny;
+                if (rv > 0) {
+                    const impulse = rv;
+                    orbA.vx -= impulse * nx;
+                    orbA.vy -= impulse * ny;
+                    orbB.vx += impulse * nx;
+                    orbB.vy += impulse * ny;
+                }
+
+                const overlap = (minDist - dist) / 2;
+                orbA.x -= nx * overlap;
+                orbA.y -= ny * overlap;
+                orbB.x += nx * overlap;
+                orbB.y += ny * overlap;
             }
-
-            const overlap = (minDist - dist) / 2;
-            orbA.x -= nx * overlap;
-            orbA.y -= ny * overlap;
-            orbB.x += nx * overlap;
-            orbB.y += ny * overlap;
         }
     }
 
