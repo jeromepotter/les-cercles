@@ -788,11 +788,13 @@ const MusicTheory = (() => {
 })();
 
 /**
+/**
  * AUDIO ENGINE - "Glassy Marimba" (Analyzed from Wav)
  * Features:
  * 1. Exact partial ratios extracted from user's Ableton sample.
  * 2. Stereo Unison (Left/Right Detuning) for "Richness".
  * 3. Soft Saturation to mimic analog drive.
+ * 4. Master Volume Control integration.
  */
 const AudioEngine = (() => {
     let ctx = null;
@@ -834,7 +836,8 @@ const AudioEngine = (() => {
             saturator.oversample = '4x';
 
             masterGain = ctx.createGain();
-            masterGain.gain.value = 0.6; 
+            // INTEGRATION: Use STATE.masterVolume
+            masterGain.gain.value = STATE.audioEnabled ? STATE.masterVolume : 0; 
 
             // Signal Chain: Saturator -> Master -> Limiter -> Out
             saturator.connect(masterGain);
@@ -867,12 +870,19 @@ const AudioEngine = (() => {
         return curve;
     }
 
+    // INTEGRATION: Preserved Volume Control
+    function setVolume(value) {
+        if(!ctx || !masterGain) return;
+        const target = STATE.audioEnabled ? value : 0;
+        masterGain.gain.cancelScheduledValues(ctx.currentTime);
+        masterGain.gain.setTargetAtTime(target, ctx.currentTime, 0.05);
+    }
+
     function toggle() {
         if(!ctx) init();
         STATE.audioEnabled = !STATE.audioEnabled;
-        if(masterGain) {
-            masterGain.gain.setTargetAtTime(STATE.audioEnabled ? 0.6 : 0, ctx.currentTime, 0.1);
-        }
+        // INTEGRATION: Use setVolume to handle state
+        setVolume(STATE.masterVolume);
         document.getElementById('audio-label').innerText = STATE.audioEnabled ? "ON" : "OFF";
     }
 
@@ -946,7 +956,7 @@ const AudioEngine = (() => {
         source.stop(t + 4.0); // Allow long ring out
     }
 
-    return { init, toggle, playNote };
+    return { init, toggle, playNote, setVolume };
 })();
 
 /**
