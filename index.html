@@ -374,6 +374,7 @@
                 <button class="btn-text" onclick="STATE.isPaused = !STATE.isPaused">PLAY</button>
                 <button class="btn-text" onclick="clearAll()">CLEAR</button>
                 <button class="btn-text" onclick="syncRPMs()">SYNC</button>
+                <button class="btn-text" onclick="evenSpacePlanets()">EVEN</button>
                 <button class="btn-text" onclick="toggleSlingshot()">ORB</button>
             </div>
 
@@ -502,7 +503,7 @@ const STATE = {
     isPaused: false,
     audioEnabled: true,
     planets: [],
-    triggers: [{ id: 1, angle: Math.PI/2, shift: 0 }], 
+    triggers: [{ id: 1, angle: Math.random() * Math.PI * 2, shift: 0 }],
     orbitRadius: 200, 
     root: 'C',
     scale: 'major',
@@ -1021,7 +1022,7 @@ document.getElementById('t-shift').oninput = (e) => {
 function clearAll() {
     STATE.planets = [];
     STATE.projectiles = []; 
-    STATE.triggers = [{ id: Date.now(), angle: Math.PI/2, shift: 0 }]; 
+    STATE.triggers = [{ id: Date.now(), angle: Math.random() * Math.PI * 2, shift: 0 }]; 
     updatePlanetList();
 }
 
@@ -1038,6 +1039,15 @@ function syncRPMs() {
             document.getElementById('p-rpm').value = effectiveRPM.toFixed(2);
         }
     }
+}
+
+function evenSpacePlanets() {
+    const count = STATE.planets.length;
+    if (count === 0) return;
+    const ordered = STATE.planets.slice().sort((a, b) => a.angle - b.angle);
+    ordered.forEach((p, i) => {
+        p.angle = (i / count) * (Math.PI * 2);
+    });
 }
 
 function updateGates(val) {
