@@ -319,6 +319,7 @@
             border-radius: 3px;
             font-size: 16px; 
         }
+        input[type=checkbox] { width: auto; }
 
         .btn-group { display: flex; gap: 10px; margin-top: 25px; }
         .btn-full { flex: 1; padding: 12px; cursor: pointer; border: 1px solid #ccc; background: var(--bg-color); color: var(--ink-color); font-weight: 600; font-size: 0.9em; border-radius: 3px; }
@@ -500,6 +501,29 @@
             </div>
         </div>
 
+        <div id="orb-panel" class="modal">
+            <h2>Orb Settings</h2>
+            <div class="control-row">
+                <label>Trigger</label>
+                <select id="o-trigger">
+                    <option value="notes">NOTES</option>
+                    <option value="gates">GATES</option>
+                    <option value="circle">CIRCLE</option>
+                </select>
+            </div>
+            <div class="control-row" id="o-pitch-row">
+                <label>Pitch</label>
+                <select id="o-pitch"></select>
+            </div>
+            <div class="control-row">
+                <label>Collision</label>
+                <input type="checkbox" id="o-collision">
+            </div>
+            <div class="btn-group">
+                <button class="btn-full" onclick="closePanel('orb-panel')">DONE</button>
+            </div>
+        </div>
+
         <div id="global-panel" class="modal">
             <h2>Settings</h2>
             <div class="control-row">
@@ -584,12 +608,14 @@ const STATE = {
     customScale: [0,2,4,5,7,9,11], 
     editingId: null, 
     editingTriggerId: null, 
+    editingOrbId: null,
     globalSpeed: 1.0,
     gateTranspose: 0,
     direction: -1,
     projectiles: [], 
     slingshot: { active: false, isDragging: false, pullX: 0, pullY: 0 },
-    centerColor: 'var(--ink-color)' 
+    centerColor: 'var(--ink-color)',
+    orbPanelPrevSlingshot: null
 };
 
 const UNDO_LIMIT = 20;
@@ -625,11 +651,14 @@ function applyUndoSnapshot(snapshot) {
     STATE.gateTranspose = snapshot.gateTranspose ?? 0;
     STATE.direction = snapshot.direction;
     STATE.isPaused = snapshot.isPaused;
+    STATE.orbPanelPrevSlingshot = null;
 
     STATE.editingId = null;
     STATE.editingTriggerId = null;
+    STATE.editingOrbId = null;
     document.getElementById('planet-panel').style.display = 'none';
     document.getElementById('trigger-panel').style.display = 'none';
+    document.getElementById('orb-panel').style.display = 'none';
     document.getElementById('global-panel').style.display = 'none';
 
     const btn = document.getElementById('btn-dir');
@@ -1133,6 +1162,13 @@ function getEffectiveTriggerShift(shift) {
     return clampShift(shift + STATE.gateTranspose);
 }
 
+function playOrbNote(orb) {
+    if (!orb.pitch) return;
+    const velocity = orb.velocity ?? 0.7;
+    AudioEngine.playNote(orb.pitch, velocity);
+    MidiEngine.sendNote(orb.pitch, velocity);
+}
+
 function updateGlobalTranspose(val) {
     pushUndoState();
     STATE.gateTranspose = clampShift(parseInt(val, 10) || 0);
@@ -1177,6 +1213,7 @@ function deleteLastPlanet() {
 }
 
 function openPlanet(p) {
+    closePanel('orb-panel');
     closePanel('trigger-panel');
     STATE.editingId = p.id;
     updatePlanetList(); 
@@ -1209,10 +1246,65 @@ function deletePlanet() {
 }
 
 function openTrigger(t) {
+    closePanel('orb-panel');
     closePanel('planet-panel');
     STATE.editingTriggerId = t.id;
     document.getElementById('t-shift').value = getEffectiveTriggerShift(t.shift);
     document.getElementById('trigger-panel').style.display = 'block';
+}
+
+function populateOrbPitchOptions(selectedPitch) {
+    const pitchSel = document.getElementById('o-pitch');
+    pitchSel.innerHTML = '';
+    const notes = MusicTheory.getNotes(STATE.root, STATE.scale);
+    let hasSelected = false;
+    notes.forEach(n => {
+        const opt = document.createElement('option');
+        opt.value = n;
+        opt.innerText = n;
+        if (n === selectedPitch) {
+            opt.selected = true;
+            hasSelected = true;
+        }
+        pitchSel.appendChild(opt);
+    });
+    if (!hasSelected && selectedPitch) {
+        const opt = document.createElement('option');
+        opt.value = selectedPitch;
+        opt.innerText = selectedPitch;
+        opt.selected = true;
+        pitchSel.prepend(opt);
+    }
+}
+
+function updateOrbPitchVisibility(mode) {
+    const pitchRow = document.getElementById('o-pitch-row');
+    pitchRow.style.display = mode === 'notes' ? 'none' : 'flex';
+}
+
+function openOrb(orb) {
+    closePanel('planet-panel');
+    closePanel('trigger-panel');
+    STATE.editingOrbId = orb.id;
+    const panel = document.getElementById('orb-panel');
+    const triggerSel = document.getElementById('o-trigger');
+    const collisionToggle = document.getElementById('o-collision');
+
+    if (!orb.triggerMode) orb.triggerMode = 'notes';
+    if (!orb.pitch) {
+        orb.pitch = MusicTheory.getRandomNoteInRange(STATE.root, STATE.scale, 3, 5);
+    }
+
+    triggerSel.value = orb.triggerMode;
+    populateOrbPitchOptions(orb.pitch);
+    updateOrbPitchVisibility(orb.triggerMode);
+    collisionToggle.checked = !!orb.collision;
+
+    if (STATE.orbPanelPrevSlingshot === null) {
+        STATE.orbPanelPrevSlingshot = STATE.slingshot.active;
+    }
+    STATE.slingshot.active = true;
+    panel.style.display = 'block';
 }
 
 function deleteTrigger() {
@@ -1310,6 +1402,25 @@ document.getElementById('p-note').onchange = (e) => {
     }
 };
 
+document.getElementById('o-trigger').onchange = (e) => {
+    const orb = STATE.projectiles.find(x => x.id === STATE.editingOrbId);
+    if (!orb) return;
+    orb.triggerMode = e.target.value;
+    updateOrbPitchVisibility(orb.triggerMode);
+};
+
+document.getElementById('o-pitch').onchange = (e) => {
+    const orb = STATE.projectiles.find(x => x.id === STATE.editingOrbId);
+    if (!orb) return;
+    orb.pitch = e.target.value;
+};
+
+document.getElementById('o-collision').onchange = (e) => {
+    const orb = STATE.projectiles.find(x => x.id === STATE.editingOrbId);
+    if (!orb) return;
+    orb.collision = e.target.checked;
+};
+
 function updatePlanetRPM(inputVal) {
     const p = STATE.planets.find(x => x.id === STATE.editingId);
     if (p && !isNaN(inputVal) && inputVal > 0) {
@@ -1340,6 +1451,13 @@ function closePanel(id) {
     document.getElementById(id).style.display = 'none';
     if(id === 'planet-panel') STATE.editingId = null;
     if(id === 'trigger-panel') STATE.editingTriggerId = null;
+    if(id === 'orb-panel') {
+        STATE.editingOrbId = null;
+        if (STATE.orbPanelPrevSlingshot !== null) {
+            STATE.slingshot.active = STATE.orbPanelPrevSlingshot;
+            STATE.orbPanelPrevSlingshot = null;
+        }
+    }
     updatePlanetList();
 }
 
@@ -1363,6 +1481,18 @@ function handleStart(x, y, altKey = false) {
             STATE.slingshot.pullY = my;
             return;
         }
+    }
+
+    const hitOrb = STATE.projectiles.find(orb => {
+        const distO = Math.sqrt((mx - orb.x) * (mx - orb.x) + (my - orb.y) * (my - orb.y));
+        return distO < 10;
+    });
+
+    if (hitOrb) {
+        dragTarget = { type: 'orb', obj: hitOrb };
+        isDragging = true;
+        dragStartTime = Date.now();
+        return;
     }
 
     // 2. PLANET DRAG
@@ -1542,11 +1672,17 @@ function handleEnd() {
         // Spawn New Orb (Limit 32)
         if (STATE.projectiles.length < 32) {
             STATE.projectiles.push({
+                id: Date.now() + Math.random(),
                 x: centerX,
                 y: centerY,
                 vx: dx * power,
                 vy: dy * power,
-                color: STATE.centerColor
+                color: STATE.centerColor,
+                triggerMode: 'notes',
+                pitch: MusicTheory.getRandomNoteInRange(STATE.root, STATE.scale, 3, 5),
+                collision: false,
+                cooldown: 0,
+                velocity: 0.7
             });
         }
     }
@@ -1556,6 +1692,7 @@ function handleEnd() {
         if (duration < 300) { 
             if (dragTarget.type === 'trigger') openTrigger(dragTarget.obj);
             if (dragTarget.type === 'planet') openPlanet(dragTarget.obj);
+            if (dragTarget.type === 'orb') openOrb(dragTarget.obj);
         }
     }
     isDragging = false;
@@ -1600,6 +1737,7 @@ function loop(time) {
     STATE.projectiles.forEach(orb => {
         orb.x += orb.vx * dt;
         orb.y += orb.vy * dt;
+        if (orb.cooldown > 0) orb.cooldown -= dt;
 
         // CIRCULAR BOUNDARY COLLISION
         const dx = orb.x - centerX;
@@ -1617,26 +1755,76 @@ function loop(time) {
             
             orb.x = centerX + nx * limit;
             orb.y = centerY + ny * limit;
+
+            if (orb.triggerMode === 'circle' && orb.cooldown <= 0) {
+                playOrbNote(orb);
+                orb.cooldown = 0.2;
+            }
+        }
+
+        if (orb.triggerMode === 'gates') {
+            for (const tObj of STATE.triggers) {
+                const tx = centerX + Math.cos(tObj.angle) * STATE.orbitRadius;
+                const ty = centerY + Math.sin(tObj.angle) * STATE.orbitRadius;
+                const distT = Math.sqrt((orb.x - tx) * (orb.x - tx) + (orb.y - ty) * (orb.y - ty));
+                if (distT < 12 && orb.cooldown <= 0) {
+                    playOrbNote(orb);
+                    orb.cooldown = 0.2;
+                    break;
+                }
+            }
         }
 
         // Collision Check with Planets
-        STATE.planets.forEach(p => {
-            if(p.cooldown > 0) p.cooldown -= dt; 
+        if (orb.triggerMode === 'notes') {
+            STATE.planets.forEach(p => {
+                if(p.cooldown > 0) p.cooldown -= dt; 
 
-            const px = centerX + Math.cos(p.angle) * STATE.orbitRadius;
-            const py = centerY + Math.sin(p.angle) * STATE.orbitRadius;
-            const distP = Math.sqrt(Math.pow(orb.x - px, 2) + Math.pow(orb.y - py, 2));
-            
-            if (distP < 15 && (!p.cooldown || p.cooldown <= 0)) {
-                AudioEngine.playNote(p.note, p.velocity);
-                MidiEngine.sendNote(p.note, p.velocity);
-                p.flash = 1.0;
-                STATE.centerColor = p.color;
-                orb.color = p.color; 
-                p.cooldown = 0.2; 
-            }
-        });
+                const px = centerX + Math.cos(p.angle) * STATE.orbitRadius;
+                const py = centerY + Math.sin(p.angle) * STATE.orbitRadius;
+                const distP = Math.sqrt(Math.pow(orb.x - px, 2) + Math.pow(orb.y - py, 2));
+                
+                if (distP < 15 && (!p.cooldown || p.cooldown <= 0)) {
+                    AudioEngine.playNote(p.note, p.velocity);
+                    MidiEngine.sendNote(p.note, p.velocity);
+                    p.flash = 1.0;
+                    STATE.centerColor = p.color;
+                    orb.color = p.color; 
+                    p.cooldown = 0.2; 
+                }
+            });
+        }
     });
+
+    for (let i = 0; i < STATE.projectiles.length; i++) {
+        const orbA = STATE.projectiles[i];
+        for (let j = i + 1; j < STATE.projectiles.length; j++) {
+            const orbB = STATE.projectiles[j];
+            if (!orbA.collision && !orbB.collision) continue;
+            const dx = orbB.x - orbA.x;
+            const dy = orbB.y - orbA.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            const minDist = 10;
+            if (dist === 0 || dist >= minDist) continue;
+
+            const nx = dx / dist;
+            const ny = dy / dist;
+            const rv = (orbA.vx - orbB.vx) * nx + (orbA.vy - orbB.vy) * ny;
+            if (rv > 0) {
+                const impulse = rv;
+                orbA.vx -= impulse * nx;
+                orbA.vy -= impulse * ny;
+                orbB.vx += impulse * nx;
+                orbB.vy += impulse * ny;
+            }
+
+            const overlap = (minDist - dist) / 2;
+            orbA.x -= nx * overlap;
+            orbA.y -= ny * overlap;
+            orbB.x += nx * overlap;
+            orbB.y += ny * overlap;
+        }
+    }
 
     // === SEQUENCER PHYSICS ===
     STATE.planets.forEach(p => {
