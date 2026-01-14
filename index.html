@@ -1043,13 +1043,17 @@ function syncRPMs() {
 function updateGates(val) {
     const count = parseInt(val);
     document.getElementById('gate-label').innerText = count;
+    const previousShifts = STATE.triggers
+        .slice()
+        .sort((a, b) => a.angle - b.angle)
+        .map(t => t.shift);
     STATE.triggers = [];
     for(let i=0; i<count; i++) {
         const angle = (i / count) * (Math.PI * 2);
         STATE.triggers.push({
             id: Date.now() + i,
             angle: angle,
-            shift: 0
+            shift: previousShifts[i] ?? 0
         });
     }
 }
