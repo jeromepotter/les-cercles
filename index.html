@@ -200,7 +200,7 @@
             aspect-ratio: 1 / 1;
             flex: 0 0 var(--chip-size, 16px);
             box-sizing: border-box;
-            border-radius: 50%;
+            border-radius: 999px;
             border: 1px solid rgba(0,0,0,0.2);
             background: var(--panel-bg);
             color: var(--ink-color);
@@ -228,7 +228,7 @@
             aspect-ratio: 1 / 1;
             flex: 0 0 var(--chip-size, 16px);
             box-sizing: border-box;
-            border-radius: 50%;
+            border-radius: 999px;
             cursor: pointer;
             border: 1px solid rgba(0,0,0,0.1);
             transition: transform 0.2s;
@@ -915,10 +915,16 @@ function syncGateUI() {
 function updatePlanetList() {
     const list = document.getElementById('planet-list');
     list.innerHTML = '';
+    const chipSize = getComputedStyle(document.getElementById('planet-list-wrap'))
+        .getPropertyValue('--chip-size')
+        .trim() || '18px';
     STATE.planets.forEach(p => {
         const chip = document.createElement('div');
         chip.className = 'planet-chip';
         chip.style.backgroundColor = p.color;
+        chip.style.width = `var(--chip-size, ${chipSize})`;
+        chip.style.height = `var(--chip-size, ${chipSize})`;
+        chip.style.borderRadius = '999px';
         if(STATE.editingId === p.id) chip.classList.add('active');
         chip.onclick = (e) => {
             e.stopPropagation(); 
@@ -1431,7 +1437,30 @@ function handleMove(x, y) {
 
             if (dragAllTriggers) {
                 STATE.triggers.forEach(t => {
-                    t.angle += dAngle;
+                    const oldTriggerAngle = t.angle;
+                    STATE.planets.forEach(p => {
+                        const pAngle = normalizeAngle(p.angle);
+                        let dP = pAngle - oldTriggerAngle;
+                        while (dP <= -Math.PI) dP += 2*Math.PI;
+                        while (dP > Math.PI) dP -= 2*Math.PI;
+
+                        let hit = false;
+                        if (dAngle > 0 && dP > 0 && dP <= dAngle) hit = true;
+                        if (dAngle < 0 && dP < 0 && dP >= dAngle) hit = true;
+
+                        if (hit) {
+                            const noteToPlay = MusicTheory.getShiftedNote(
+                                STATE.root,
+                                STATE.scale,
+                                p.note,
+                                getEffectiveTriggerShift(t.shift)
+                            );
+                            AudioEngine.playNote(noteToPlay, p.velocity);
+                            MidiEngine.sendNote(noteToPlay, p.velocity);
+                            p.flash = 1.0;
+                        }
+                    });
+                    t.angle = oldTriggerAngle + dAngle;
                 });
                 tObj.angle = newAngle;
                 return;
