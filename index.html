@@ -1526,6 +1526,46 @@ let dragTarget = null;
 let isDragging = false;
 let dragStartTime = 0;
 let dragAllTriggers = false;
+let isSpaceDown = false;
+
+const GATE_SPIN_STEP = Math.PI / 30;
+
+function shouldIgnoreKeyEvent(target) {
+    if (!target) return false;
+    const tagName = target.tagName;
+    if (tagName === 'INPUT' || tagName === 'TEXTAREA' || tagName === 'SELECT') return true;
+    return target.isContentEditable;
+}
+
+function spinAllTriggers(dAngle) {
+    if (!dAngle || STATE.triggers.length === 0) return;
+    STATE.triggers.forEach(t => {
+        const oldTriggerAngle = t.angle;
+        STATE.planets.forEach(p => {
+            const pAngle = normalizeAngle(p.angle);
+            let dP = pAngle - oldTriggerAngle;
+            while (dP <= -Math.PI) dP += 2 * Math.PI;
+            while (dP > Math.PI) dP -= 2 * Math.PI;
+
+            let hit = false;
+            if (dAngle > 0 && dP > 0 && dP <= dAngle) hit = true;
+            if (dAngle < 0 && dP < 0 && dP >= dAngle) hit = true;
+
+            if (hit) {
+                const noteToPlay = MusicTheory.getShiftedNote(
+                    STATE.root,
+                    STATE.scale,
+                    p.note,
+                    getEffectiveTriggerShift(t.shift)
+                );
+                AudioEngine.playNote(noteToPlay, p.velocity);
+                MidiEngine.sendNote(noteToPlay, p.velocity);
+                p.flash = 1.0;
+            }
+        });
+        t.angle = oldTriggerAngle + dAngle;
+    });
+}
 
 function handleStart(x, y, altKey = false) {
     const rect = canvas.getBoundingClientRect();
@@ -1780,6 +1820,27 @@ canvas.addEventListener('touchend', e => {
     e.preventDefault();
     handleEnd();
 }, {passive: false});
+
+window.addEventListener('keydown', e => {
+    if (shouldIgnoreKeyEvent(e.target)) return;
+    if (e.code === 'Space') {
+        isSpaceDown = true;
+        return;
+    }
+    if (!isSpaceDown) return;
+    if (e.code === 'ArrowLeft' || e.code === 'ArrowRight') {
+        e.preventDefault();
+        pushUndoState();
+        const direction = e.code === 'ArrowLeft' ? -1 : 1;
+        spinAllTriggers(GATE_SPIN_STEP * direction);
+    }
+});
+
+window.addEventListener('keyup', e => {
+    if (e.code === 'Space') {
+        isSpaceDown = false;
+    }
+});
 
 
 let lastTime = 0;
