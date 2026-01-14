@@ -1,0 +1,1509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>LES CERCLES</title>
+    <style>
+        :root {
+            /* LIGHT MODE (Default) */
+            --bg-color: #e8e6e1; 
+            --ink-color: #333333; 
+            --accent-orange: #cf6325;
+            --accent-blue: #364a59;
+            --accent-red: #f04e23;
+            --panel-bg: #f4f4f2;
+            --border: 1px solid #bbb;
+            --shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        /* DARK MODE overrides */
+        body.dark-mode {
+            --bg-color: #1a1a1a; 
+            --ink-color: #e0e0e0;
+            --panel-bg: #2a2a2a;
+            --border: 1px solid #444;
+            --shadow: 0 4px 10px rgba(0,0,0,0.4);
+        }
+
+        @font-face {
+            font-family: 'Helvetica Neue';
+            src: local('Helvetica Neue'), local('Arial'), sans-serif;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            color: var(--ink-color);
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            overflow: hidden; /* Prevent scroll */
+            width: 100vw;
+            height: 100vh;
+            user-select: none;
+            -webkit-user-select: none;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        #game-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        canvas {
+            cursor: crosshair;
+            touch-action: none; 
+        }
+
+        /* HUD & UI */
+        #hud-top {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+            z-index: 10;
+            justify-content: space-between; 
+        }
+
+        h1.title {
+            margin: 0;
+            font-weight: 700;
+            font-size: 1.2em;
+            letter-spacing: 1px;
+            display: none; 
+        }
+        @media (min-width: 768px) {
+            h1.title { display: block; }
+            #hud-top { justify-content: flex-start; }
+        }
+
+        .hud-item {
+            cursor: pointer;
+            opacity: 0.6;
+            transition: opacity 0.2s;
+            white-space: nowrap;
+        }
+        .hud-item:hover { opacity: 1; }
+
+        select.midi-select {
+            background: transparent;
+            color: var(--ink-color);
+            border: none;
+            border-bottom: 1px solid #999;
+            padding: 2px;
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            font-size: 0.9em;
+            font-weight: 500;
+            margin-left: 0;
+            outline: none;
+            max-width: 120px;
+            cursor: pointer;
+        }
+
+        /* CONTROLS BAR */
+        #controls-bar {
+            position: absolute;
+            bottom: 30px;
+            left: 30px;
+            right: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            pointer-events: none; 
+            z-index: 20;
+        }
+
+        .control-group {
+            pointer-events: auto;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        /* BUTTONS */
+        .btn-circle {
+            width: 44px;
+            height: 44px;
+            background: transparent;
+            border: none;
+            border-radius: 50%;
+            color: var(--ink-color);
+            font-size: 1.8em;
+            font-weight: 300;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            opacity: 0.8;
+            border: 1px solid rgba(0,0,0,0.1); 
+            transition: opacity 0.2s, transform 0.1s;
+        }
+        .btn-circle:active { transform: scale(0.95); background: rgba(0,0,0,0.05); }
+
+        .btn-text {
+            background: transparent;
+            border: 1px solid transparent;
+            border-radius: 4px;
+            font-weight: 600;
+            color: var(--ink-color);
+            opacity: 0.7;
+            cursor: pointer;
+            text-transform: uppercase;
+            font-size: 0.85em;
+            letter-spacing: 1px;
+            padding: 8px 10px; 
+            white-space: nowrap;
+        }
+        .btn-text:active { background: rgba(0,0,0,0.05); opacity: 1; }
+        .btn-active { color: var(--accent-orange); opacity: 1; border-bottom: 2px solid var(--accent-orange); }
+
+        /* PLANET LIST */
+        #planet-list {
+            position: absolute;
+            bottom: 100px; 
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 8px;
+            pointer-events: auto;
+            background: rgba(255,255,255,0.2);
+            padding: 8px 16px;
+            border-radius: 20px;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255,255,255,0.1);
+            max-width: 90vw;
+            overflow-x: auto;
+            z-index: 15;
+        }
+
+        .planet-chip {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 1px solid rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+            flex-shrink: 0;
+        }
+        .planet-chip.active { box-shadow: 0 0 0 2px var(--ink-color); transform: scale(1.3); }
+
+        /* SLIDERS */
+        .macro-slider-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+        }
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100px;
+            height: 4px;
+            background: #ccc;
+            border-radius: 2px;
+            outline: none;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px; 
+            height: 18px;
+            border-radius: 50%;
+            background: var(--ink-color);
+            cursor: pointer;
+            border: 2px solid var(--bg-color);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        }
+
+        /* PANELS */
+        .modal {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 300px;
+            background-color: var(--panel-bg);
+            border: var(--border);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            padding: 20px;
+            z-index: 100;
+            border-radius: 4px;
+        }
+
+        .modal h2 {
+            margin: 0 0 20px 0;
+            text-transform: uppercase;
+            font-size: 0.9em;
+            letter-spacing: 1px;
+            color: var(--ink-color);
+            opacity: 0.6;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 10px;
+        }
+
+        .control-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            font-size: 0.9em;
+        }
+
+        input:not([type=range]), select {
+            background: var(--bg-color);
+            color: var(--ink-color);
+            border: 1px solid #ccc;
+            padding: 8px;
+            font-family: inherit;
+            width: 120px;
+            border-radius: 3px;
+            font-size: 16px; 
+        }
+
+        .btn-group { display: flex; gap: 10px; margin-top: 25px; }
+        .btn-full { flex: 1; padding: 12px; cursor: pointer; border: 1px solid #ccc; background: var(--bg-color); color: var(--ink-color); font-weight: 600; font-size: 0.9em; border-radius: 3px; }
+        .btn-danger { color: #d00; border-color: #ecc; }
+
+        /* CIRCLE KEYS */
+        .circle-keys-container { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin: 20px 0; }
+        .key-circle {
+            width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--ink-color);
+            display: flex; justify-content: center; align-items: center; cursor: pointer;
+            font-size: 0.75em; font-weight: bold; opacity: 0.5;
+        }
+        .key-circle.active { background: var(--ink-color); color: var(--bg-color); opacity: 1; }
+        .key-circle.black-key { background: rgba(0,0,0,0.1); }
+
+        #start-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--bg-color); display: flex; flex-direction: column;
+            justify-content: center; align-items: center; z-index: 1000; cursor: pointer;
+        }
+
+        /* --- MOBILE OPTIMIZATIONS --- */
+        @media (max-width: 768px) {
+            #hud-top { 
+                top: 10px; left: 10px; right: 10px; 
+                gap: 5px;
+            }
+            .hud-item { font-size: 0.75em; }
+            
+            select.midi-select {
+                max-width: 80px;
+                font-size: 0.9em;
+                padding: 0;
+                border: none;
+                border-bottom: 1px solid #999;
+            }
+
+            #controls-bar {
+                bottom: 0;
+                left: 0;
+                right: 0;
+                width: 100%;
+                background: rgba(255,255,255,0.1);
+                backdrop-filter: blur(10px);
+                padding: 10px 5px 15px 5px; 
+                flex-direction: column-reverse; 
+                gap: 12px;
+                border-top: 1px solid rgba(0,0,0,0.05);
+                box-sizing: border-box;
+            }
+
+            .control-group {
+                width: 100%;
+                justify-content: space-around; 
+                gap: 2px;
+            }
+            
+            input[type=range] { width: 70px; }
+            .macro-slider-container label { font-size: 0.55em !important; }
+
+            .btn-text {
+                font-size: 0.7em;
+                padding: 8px 6px;
+                border: 1px solid rgba(0,0,0,0.1);
+            }
+            
+            #planet-list {
+                bottom: 140px; 
+            }
+            
+            .modal { width: 85vw; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="start-overlay">
+        <h1 style="font-size: 3em; letter-spacing: 4px; font-weight: 300; text-align: center;">LES CERCLES</h1>
+        <p style="color: var(--ink-color); opacity: 0.5; margin-top: 10px; font-size: 0.8em;">TAP TO INITIALIZE</p>
+    </div>
+
+    <input type="file" id="file-input" style="display: none;" accept=".json" onchange="handleFileLoad(this)">
+
+    <div id="game-container">
+        <div id="hud-top">
+            <h1 class="title">LES CERCLES</h1>
+            <div class="hud-item" onclick="toggleAudio()">AUDIO: <span id="audio-label">ON</span></div>
+            
+            <div class="hud-item">
+                <select id="midi-select" class="midi-select" onchange="MidiEngine.selectOutput(this.value)">
+                    <option value="">MIDI...</option>
+                </select>
+            </div>
+
+            <div class="hud-item" onclick="openGlobal()">SETTINGS</div>
+        </div>
+
+        <canvas id="mainCanvas"></canvas>
+        
+        <div id="planet-list"></div>
+
+        <div id="controls-bar">
+            <div class="control-group">
+                <div class="btn-circle" onclick="addPlanet()">+</div>
+                <button class="btn-text" onclick="STATE.isPaused = !STATE.isPaused">PLAY</button>
+                <button class="btn-text" onclick="clearAll()">CLEAR</button>
+                <button class="btn-text" onclick="syncRPMs()">SYNC</button>
+                <button class="btn-text" onclick="toggleSlingshot()">ORB</button>
+            </div>
+
+            <div class="control-group">
+                <button id="btn-dir" class="btn-text" onclick="toggleDirection()">CCW</button>
+
+                <div class="macro-slider-container">
+                    <label>GATES: <span id="gate-label">1</span></label>
+                    <input type="range" min="1" max="32" step="1" value="1" oninput="updateGates(this.value)">
+                </div>
+
+                <button class="btn-text" onclick="randomizeGateTranspose()">RND</button>
+
+                <div class="macro-slider-container">
+                    <label>SPEED</label>
+                    <input type="range" min="0.1" max="3.0" step="0.1" value="1.0" oninput="updateGlobalSpeed(this.value)">
+                </div>
+            </div>
+        </div>
+
+        <div id="planet-panel" class="modal">
+            <div class="control-row">
+                <label>Note</label>
+                <select id="p-note"></select>
+            </div>
+            <div class="control-row">
+                <label>RPM</label>
+                <input type="number" id="p-rpm" step="0.1" min="0.1" max="500">
+            </div>
+            <div class="control-row">
+                <label>Velocity</label>
+                <input type="range" id="p-vol" min="0" max="1" step="0.01">
+            </div>
+            <div class="btn-group">
+                <button class="btn-full btn-danger" onclick="deletePlanet()">DELETE</button>
+                <button class="btn-full" onclick="closePanel('planet-panel')">DONE</button>
+            </div>
+        </div>
+
+        <div id="trigger-panel" class="modal">
+            <h2>Trigger Settings</h2>
+            <div class="control-row">
+                <label>Transpose</label>
+                <input type="number" id="t-shift" min="-7" max="7" step="1" value="0">
+            </div>
+            <div class="btn-group">
+                <button class="btn-full btn-danger" onclick="deleteTrigger()">DELETE</button>
+                <button class="btn-full" onclick="closePanel('trigger-panel')">DONE</button>
+            </div>
+        </div>
+
+        <div id="global-panel" class="modal">
+            <h2>Settings</h2>
+            <div class="control-row">
+                <label>Root</label>
+                <select id="g-root">
+                    <option value="C">C</option><option value="C#">C#</option>
+                    <option value="D">D</option><option value="D#">D#</option>
+                    <option value="E">E</option><option value="F">F</option>
+                    <option value="F#">F#</option><option value="G">G</option>
+                    <option value="G#">G#</option><option value="A">A</option>
+                    <option value="A#">A#</option><option value="B">B</option>
+                </select>
+            </div>
+            <div class="control-row">
+                <label>Scale</label>
+                <select id="g-scale" onchange="checkCustomScale(this.value)">
+                    <option value="chromatic">Chromatic</option>
+                    <option value="major">Major</option>
+                    <option value="minor">Minor</option>
+                    <option value="pentatonic_major">Pent Maj</option>
+                    <option value="pentatonic_minor">Pent Min</option>
+                    <option value="whole_tone">Whole Tone</option>
+                    <option value="dorian">Dorian</option>
+                    <option value="lydian">Lydian</option>
+                    <option value="custom">★ CUSTOM</option>
+                </select>
+            </div>
+            <div class="btn-group" style="margin-top: 15px; border-top: 1px solid #ccc; padding-top: 15px;">
+                <button class="btn-full" onclick="applyGlobal()">APPLY</button>
+                <button class="btn-full" onclick="closePanel('global-panel')">CLOSE</button>
+            </div>
+            <div class="btn-group">
+                <button class="btn-full" onclick="savePattern()">SAVE .JSON</button>
+                <button class="btn-full" onclick="triggerLoad()">LOAD .JSON</button>
+            </div>
+        </div>
+
+        <div id="scale-editor" class="modal">
+            <h2>CUSTOM SCALE</h2>
+            <div class="circle-keys-container" id="circle-keys"></div>
+            <div class="btn-group">
+                 <button class="btn-full" onclick="finishCustomScale()">DONE</button>
+            </div>
+        </div>
+
+    </div>
+
+<script>
+/** * COLOR PALETTE */
+const PALETTE = [
+    '#cf6325', // Orange
+    '#364a59', // Blue
+    '#4b8b3b', // Green
+    '#333333', // Black
+    '#f2c400', // Yellow
+    '#6c6e6b', // Slate
+    '#b7b09c', // Beige
+    '#000000'  // Deep Black
+];
+
+function adjustColor(color, amount) {
+    return '#' + color.replace(/^#/, '').replace(/../g, color => ('0'+Math.min(255, Math.max(0, parseInt(color, 16) + amount)).toString(16)).substr(-2));
+}
+
+function normalizeAngle(a) {
+    a = a % (2 * Math.PI);
+    if (a > Math.PI) a -= 2 * Math.PI;
+    if (a <= -Math.PI) a += 2 * Math.PI;
+    return a;
+}
+
+/** * CORE STATE */
+const STATE = {
+    isRunning: false,
+    isPaused: false,
+    audioEnabled: true,
+    planets: [],
+    triggers: [{ id: 1, angle: Math.PI/2, shift: 0 }], 
+    orbitRadius: 200, 
+    root: 'C',
+    scale: 'major',
+    customScale: [0,2,4,5,7,9,11], 
+    editingId: null, 
+    editingTriggerId: null, 
+    globalSpeed: 1.0,
+    direction: -1,
+    projectiles: [], 
+    slingshot: { active: false, isDragging: false, pullX: 0, pullY: 0 },
+    centerColor: 'var(--ink-color)' 
+};
+
+/**
+ * MUSIC LOGIC
+ */
+const MusicTheory = (() => {
+    const NOTES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+    const SCALES = {
+        'chromatic': [0,1,2,3,4,5,6,7,8,9,10,11],
+        'major': [0,2,4,5,7,9,11],
+        'minor': [0,2,3,5,7,8,10],
+        'pentatonic_major': [0,2,4,7,9],
+        'pentatonic_minor': [0,3,5,7,10],
+        'whole_tone': [0,2,4,6,8,10],
+        'dorian': [0,2,3,5,7,9,10],
+        'lydian': [0,2,4,6,7,9,11]
+    };
+
+    function getFullScale(root, scale) {
+        const rootIdx = NOTES.indexOf(root);
+        let interval = SCALES[scale];
+        if (scale === 'custom') interval = STATE.customScale;
+        if (!interval || interval.length === 0) interval = SCALES['chromatic'];
+
+        let res = [];
+        for(let oct=0; oct<=8; oct++) {
+            interval.forEach(i => {
+                const idx = (rootIdx + i) % 12;
+                res.push(NOTES[idx] + oct);
+            });
+        }
+        return res;
+    }
+
+    function getNotes(root, scale) {
+        const all = getFullScale(root, scale);
+        return all.filter(n => {
+            const oct = parseInt(n.slice(-1));
+            return oct >= 2 && oct <= 7;
+        });
+    }
+
+    function getRandomNoteInRange(root, scale, minOct, maxOct) {
+        const all = getFullScale(root, scale);
+        const filtered = all.filter(n => {
+            const oct = parseInt(n.slice(-1));
+            return oct >= minOct && oct <= maxOct;
+        });
+        if(filtered.length === 0) return root + '4';
+        return filtered[Math.floor(Math.random() * filtered.length)];
+    }
+
+    function getShiftedNote(root, scale, currentNote, shift) {
+        if(shift === 0) return currentNote;
+        const all = getFullScale(root, scale);
+        const idx = all.indexOf(currentNote);
+        if(idx === -1) return currentNote; 
+        let newIdx = idx + shift;
+        if(newIdx < 0) newIdx = 0;
+        if(newIdx >= all.length) newIdx = all.length - 1;
+        return all[newIdx];
+    }
+
+    return { getNotes, getRandomNoteInRange, getShiftedNote, NOTES };
+})();
+
+/**
+ * AUDIO ENGINE
+ */
+const AudioEngine = (() => {
+    let ctx = null;
+    let masterGain = null;
+    let limiter = null;
+
+    function init() {
+        if(!ctx) {
+            ctx = new (window.AudioContext || window.webkitAudioContext)();
+            limiter = ctx.createDynamicsCompressor();
+            limiter.threshold.value = -1; 
+            limiter.knee.value = 5;
+            limiter.ratio.value = 20; 
+            limiter.attack.value = 0.001; 
+            limiter.release.value = 0.1;
+            
+            masterGain = ctx.createGain();
+            masterGain.gain.value = 0.05; 
+
+            masterGain.connect(limiter);
+            limiter.connect(ctx.destination);
+        }
+        if(ctx.state === 'suspended') ctx.resume();
+    }
+
+    function toggle() {
+        if(!ctx) init();
+        STATE.audioEnabled = !STATE.audioEnabled;
+        if(masterGain) masterGain.gain.setTargetAtTime(STATE.audioEnabled ? 0.3 : 0, ctx.currentTime, 0.1);
+        document.getElementById('audio-label').innerText = STATE.audioEnabled ? "ON" : "OFF";
+    }
+
+    function playNote(note, velocity=1.0) {
+        if(!ctx || !STATE.audioEnabled) return;
+        
+        const notes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+        const oct = parseInt(note.slice(-1));
+        const key = note.slice(0, -1);
+        const idx = notes.indexOf(key);
+        const midi = (oct + 1)*12 + idx;
+        const freq = 440 * Math.pow(2, (midi-69)/12);
+
+        const t = ctx.currentTime;
+        const osc = ctx.createOscillator();
+        const filter = ctx.createBiquadFilter();
+        const gain = ctx.createGain();
+
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(freq, t);
+
+        const cutoff = Math.min(freq * 3, 4000); 
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(cutoff, t);
+        filter.Q.value = 1; 
+
+        gain.gain.setValueAtTime(0, t);
+        gain.gain.linearRampToValueAtTime(velocity, t + 0.005);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 1.2);
+
+        osc.connect(filter);
+        filter.connect(gain);
+        gain.connect(masterGain);
+
+        osc.start(t);
+        osc.stop(t + 1.3);
+    }
+
+    return { init, toggle, playNote };
+})();
+
+/**
+ * MIDI ENGINE
+ */
+const MidiEngine = (() => {
+    let access = null;
+    let selectedOutput = null;
+
+    async function init() {
+        if(!navigator.requestMIDIAccess) return;
+        try {
+            access = await navigator.requestMIDIAccess();
+            access.onstatechange = scan;
+            scan();
+        } catch(e) { console.log("MIDI Fail"); }
+    }
+
+    function scan() {
+        const sel = document.getElementById('midi-select');
+        sel.innerHTML = '<option value="">MIDI...</option>';
+        if(!access) return;
+        const iter = access.outputs.values();
+        for(let o = iter.next(); !o.done; o = iter.next()) {
+            const opt = document.createElement('option');
+            opt.value = o.value.id;
+            opt.innerText = o.value.name;
+            sel.appendChild(opt);
+        }
+    }
+
+    function selectOutput(id) {
+        if(!access) return;
+        const iter = access.outputs.values();
+        for(let o = iter.next(); !o.done; o = iter.next()) {
+            if(o.value.id === id) selectedOutput = o.value;
+        }
+    }
+
+    function sendNote(note, velocity) {
+        if(!selectedOutput) return;
+        const notes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+        const oct = parseInt(note.slice(-1));
+        const key = note.slice(0, -1);
+        const idx = notes.indexOf(key);
+        const midiNum = (oct + 1)*12 + idx;
+        const vel = Math.floor(velocity * 127);
+        try {
+            selectedOutput.send([0x90, midiNum, vel]);
+            setTimeout(() => selectedOutput.send([0x80, midiNum, 0]), 100);
+        } catch(e){}
+    }
+
+    return { init, selectOutput, sendNote };
+})();
+
+/**
+ * APP LOGIC
+ */
+
+const startNotes = ['C4', 'E4', 'G4', 'B4'];
+const startRPMs = [8, 12, 16, 4];
+
+for(let i=0; i<4; i++) {
+    STATE.planets.push({
+        id: Date.now() + i,
+        note: startNotes[i],
+        rpm: startRPMs[i],
+        angle: Math.random() * Math.PI * 2,
+        velocity: 0.8,
+        color: PALETTE[i % PALETTE.length]
+    });
+}
+
+const canvas = document.getElementById('mainCanvas');
+const ctx = canvas.getContext('2d');
+let canvasW, canvasH, centerX, centerY;
+
+function resize() {
+    canvasW = window.innerWidth;
+    canvasH = window.innerHeight;
+    canvas.width = canvasW;
+    canvas.height = canvasH;
+    centerX = canvasW/2;
+    centerY = canvasH/2;
+    const dim = Math.min(canvasW, canvasH);
+    STATE.orbitRadius = dim * (dim < 600 ? 0.35 : 0.35);
+}
+window.addEventListener('resize', resize);
+resize();
+
+function toggleAudio() { AudioEngine.toggle(); }
+
+function toggleDirection() {
+    STATE.direction *= -1;
+    const btn = document.getElementById('btn-dir');
+    const isCW = STATE.direction === 1;
+    btn.innerText = isCW ? "CW" : "CCW";
+    if(isCW) document.body.classList.add('dark-mode');
+    else document.body.classList.remove('dark-mode');
+}
+
+function updatePlanetList() {
+    const list = document.getElementById('planet-list');
+    list.innerHTML = '';
+    STATE.planets.forEach(p => {
+        const chip = document.createElement('div');
+        chip.className = 'planet-chip';
+        chip.style.backgroundColor = p.color;
+        if(STATE.editingId === p.id) chip.classList.add('active');
+        chip.onclick = (e) => {
+            e.stopPropagation(); 
+            openPlanet(p);
+        };
+        list.appendChild(chip);
+    });
+}
+
+function openGlobal() {
+    document.getElementById('g-root').value = STATE.root;
+    document.getElementById('g-scale').value = STATE.scale;
+    document.getElementById('global-panel').style.display = 'block';
+}
+
+function applyGlobal() {
+    STATE.root = document.getElementById('g-root').value;
+    STATE.scale = document.getElementById('g-scale').value;
+    // TRIGGER QUANTIZATION
+    quantizePlanets();
+    closePanel('global-panel');
+}
+
+/* QUANTIZATION LOGIC */
+function quantizePlanets() {
+    // 1. Get allowed notes in new scale
+    const allowedNotes = MusicTheory.getNotes(STATE.root, STATE.scale);
+    
+    // 2. Helper to convert Note to Midi Value for comparison
+    const getMidiVal = (n) => {
+        const key = n.slice(0, -1);
+        const oct = parseInt(n.slice(-1));
+        const idx = MusicTheory.NOTES.indexOf(key);
+        return oct * 12 + idx;
+    };
+
+    // 3. Iterate planets
+    STATE.planets.forEach(p => {
+        const currentVal = getMidiVal(p.note);
+        
+        // Find closest valid note
+        let closest = allowedNotes[0];
+        let minDiff = 999;
+        
+        allowedNotes.forEach(valid => {
+            const diff = Math.abs(getMidiVal(valid) - currentVal);
+            if(diff < minDiff) {
+                minDiff = diff;
+                closest = valid;
+            }
+        });
+        
+        p.note = closest;
+    });
+    
+    // Update UI if open
+    if(STATE.editingId) {
+        const p = STATE.planets.find(x => x.id === STATE.editingId);
+        if(p) openPlanet(p);
+    }
+}
+
+/* CUSTOM SCALE LOGIC */
+function checkCustomScale(val) {
+    if(val === 'custom') {
+        openScaleEditor();
+        closePanel('global-panel');
+    }
+}
+
+function openScaleEditor() {
+    const container = document.getElementById('circle-keys');
+    container.innerHTML = '';
+    const notes = MusicTheory.NOTES;
+    
+    notes.forEach((n, i) => {
+        const div = document.createElement('div');
+        div.className = 'key-circle';
+        if (n.includes('#')) div.classList.add('black-key');
+        div.innerText = n;
+        
+        if (STATE.customScale.includes(i)) {
+            div.classList.add('active');
+        }
+
+        div.onclick = () => {
+            const idx = STATE.customScale.indexOf(i);
+            if (idx > -1) {
+                STATE.customScale.splice(idx, 1);
+                div.classList.remove('active');
+            } else {
+                STATE.customScale.push(i);
+                STATE.customScale.sort((a,b) => a-b);
+                div.classList.add('active');
+            }
+        };
+        container.appendChild(div);
+    });
+    
+    document.getElementById('scale-editor').style.display = 'block';
+}
+
+function finishCustomScale() {
+    // Explicitly set state so openGlobal reads it correctly
+    STATE.scale = 'custom';
+    closePanel('scale-editor');
+    openGlobal();
+}
+
+/* SLINGSHOT LOGIC */
+function toggleSlingshot() {
+    STATE.slingshot.active = !STATE.slingshot.active;
+}
+
+function savePattern() {
+    const data = {
+        planets: STATE.planets,
+        triggers: STATE.triggers,
+        root: STATE.root,
+        scale: STATE.scale,
+        customScale: STATE.customScale,
+        globalSpeed: STATE.globalSpeed,
+        direction: STATE.direction
+    };
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data));
+    const downloadAnchorNode = document.createElement('a');
+    downloadAnchorNode.setAttribute("href", dataStr);
+    downloadAnchorNode.setAttribute("download", "les_cercles_pattern.json");
+    document.body.appendChild(downloadAnchorNode); 
+    downloadAnchorNode.click();
+    downloadAnchorNode.remove();
+}
+
+function triggerLoad() {
+    document.getElementById('file-input').click();
+}
+
+function handleFileLoad(input) {
+    const file = input.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const data = JSON.parse(e.target.result);
+            STATE.planets = data.planets;
+            STATE.triggers = data.triggers;
+            STATE.root = data.root;
+            STATE.scale = data.scale;
+            if(data.customScale) STATE.customScale = data.customScale;
+            STATE.globalSpeed = data.globalSpeed;
+            
+            STATE.direction = data.direction || -1; 
+            const isCW = STATE.direction === 1;
+            document.getElementById('btn-dir').innerText = isCW ? "CW" : "CCW";
+            if(isCW) document.body.classList.add('dark-mode');
+            else document.body.classList.remove('dark-mode');
+
+            document.querySelector('input[type=range]').value = STATE.globalSpeed;
+
+            updatePlanetList();
+            closePanel('global-panel');
+            alert("Pattern Loaded!");
+        } catch(err) {
+            console.error(err);
+            alert("Invalid JSON file.");
+        }
+    };
+    reader.readAsText(file);
+    input.value = ''; 
+}
+
+function updateGlobalSpeed(val) {
+    STATE.globalSpeed = parseFloat(val);
+    if (STATE.editingId) {
+        const p = STATE.planets.find(x => x.id === STATE.editingId);
+        if (p) {
+             const effectiveRPM = p.rpm * STATE.globalSpeed;
+             document.getElementById('p-rpm').value = effectiveRPM.toFixed(2);
+        }
+    }
+}
+
+function addPlanet() {
+    if(STATE.planets.length >= 32) return;
+    const randomNote = MusicTheory.getRandomNoteInRange(STATE.root, STATE.scale, 3, 5);
+    const newRPM = 3 + Math.random() * 15;
+    const newP = {
+        id: Date.now(),
+        note: randomNote, 
+        rpm: newRPM,
+        angle: 0, 
+        velocity: 0.7,
+        color: PALETTE[STATE.planets.length % PALETTE.length],
+        cooldown: 0
+    };
+    STATE.planets.push(newP);
+    updatePlanetList();
+    openPlanet(newP); 
+}
+
+function openPlanet(p) {
+    closePanel('trigger-panel');
+    STATE.editingId = p.id;
+    updatePlanetList(); 
+    const panel = document.getElementById('planet-panel');
+    const noteSel = document.getElementById('p-note');
+    noteSel.innerHTML = '';
+    
+    const notes = MusicTheory.getNotes(STATE.root, STATE.scale);
+    notes.forEach(n => {
+        const opt = document.createElement('option');
+        opt.value = n;
+        opt.innerText = n;
+        if(n === p.note) opt.selected = true;
+        noteSel.appendChild(opt);
+    });
+
+    const effectiveRPM = p.rpm * STATE.globalSpeed;
+    document.getElementById('p-rpm').value = effectiveRPM.toFixed(2);
+    document.getElementById('p-vol').value = p.velocity;
+    panel.style.display = 'block';
+}
+
+function deletePlanet() {
+    if(!STATE.editingId) return;
+    STATE.planets = STATE.planets.filter(p => p.id !== STATE.editingId);
+    updatePlanetList();
+    closePanel('planet-panel');
+}
+
+function openTrigger(t) {
+    closePanel('planet-panel');
+    STATE.editingTriggerId = t.id;
+    document.getElementById('t-shift').value = t.shift;
+    document.getElementById('trigger-panel').style.display = 'block';
+}
+
+function deleteTrigger() {
+    if(!STATE.editingTriggerId) return;
+    STATE.triggers = STATE.triggers.filter(t => t.id !== STATE.editingTriggerId);
+    closePanel('trigger-panel');
+}
+
+document.getElementById('t-shift').onchange = (e) => {
+    let val = parseInt(e.target.value);
+    if(val > 7) val = 7;
+    if(val < -7) val = -7;
+    e.target.value = val;
+
+    const t = STATE.triggers.find(x => x.id === STATE.editingTriggerId);
+    if(t) t.shift = val;
+};
+
+document.getElementById('t-shift').oninput = (e) => {
+    let val = parseInt(e.target.value);
+    if(val > 7) e.target.value = 7;
+    if(val < -7) e.target.value = -7;
+};
+
+function clearAll() {
+    STATE.planets = [];
+    STATE.projectiles = []; 
+    STATE.triggers = [{ id: Date.now(), angle: Math.PI/2, shift: 0 }]; 
+    updatePlanetList();
+}
+
+function syncRPMs() {
+    if (STATE.planets.length === 0) return;
+    const targetRPM = STATE.planets[0].rpm;
+    STATE.planets.forEach(p => {
+        p.rpm = targetRPM;
+    });
+    if (STATE.editingId) {
+        const p = STATE.planets.find(x => x.id === STATE.editingId);
+        if (p) {
+            const effectiveRPM = p.rpm * STATE.globalSpeed;
+            document.getElementById('p-rpm').value = effectiveRPM.toFixed(2);
+        }
+    }
+}
+
+function updateGates(val) {
+    const count = parseInt(val);
+    document.getElementById('gate-label').innerText = count;
+    STATE.triggers = [];
+    for(let i=0; i<count; i++) {
+        const angle = (i / count) * (Math.PI * 2);
+        STATE.triggers.push({
+            id: Date.now() + i,
+            angle: angle,
+            shift: 0
+        });
+    }
+}
+
+function randomizeGateTranspose() {
+    STATE.triggers.forEach(t => {
+        t.shift = Math.floor(Math.random() * 15) - 7;
+    });
+}
+
+document.getElementById('p-note').onchange = (e) => {
+    const p = STATE.planets.find(x => x.id === STATE.editingId);
+    if(p) p.note = e.target.value;
+};
+
+document.getElementById('p-rpm').oninput = (e) => {
+    const p = STATE.planets.find(x => x.id === STATE.editingId);
+    if(p) {
+        const inputVal = parseFloat(e.target.value);
+        if (!isNaN(inputVal) && inputVal > 0) {
+            p.rpm = inputVal / STATE.globalSpeed;
+        }
+    }
+};
+
+document.getElementById('p-vol').oninput = (e) => {
+    const p = STATE.planets.find(x => x.id === STATE.editingId);
+    if(p) p.velocity = parseFloat(e.target.value);
+};
+
+function closePanel(id) {
+    document.getElementById(id).style.display = 'none';
+    if(id === 'planet-panel') STATE.editingId = null;
+    if(id === 'trigger-panel') STATE.editingTriggerId = null;
+    updatePlanetList();
+}
+
+// --- DRAG AND DROP PHYSICS (MOUSE + TOUCH) ---
+let dragTarget = null; 
+let isDragging = false;
+let dragStartTime = 0;
+
+function handleStart(x, y) {
+    const rect = canvas.getBoundingClientRect();
+    const mx = x - rect.left;
+    const my = y - rect.top;
+    
+    // 1. SLINGSHOT START
+    if (STATE.slingshot.active) {
+        const distCenter = Math.sqrt(Math.pow(mx-centerX, 2) + Math.pow(my-centerY, 2));
+        if (distCenter < 30) {
+            STATE.slingshot.isDragging = true;
+            STATE.slingshot.pullX = mx;
+            STATE.slingshot.pullY = my;
+            return;
+        }
+    }
+
+    // 2. PLANET DRAG
+    const hitPlanet = STATE.planets.find(p => {
+        const px = centerX + Math.cos(p.angle) * STATE.orbitRadius;
+        const py = centerY + Math.sin(p.angle) * STATE.orbitRadius;
+        const distP = Math.sqrt((mx-px)*(mx-px) + (my-py)*(my-py));
+        return distP < 25; // Larger touch target
+    });
+
+    if (hitPlanet) {
+        dragTarget = { type: 'planet', obj: hitPlanet };
+        isDragging = true;
+        dragStartTime = Date.now();
+        return; 
+    }
+
+    // 3. TRIGGER DRAG
+    const dx = mx - centerX;
+    const dy = my - centerY;
+    const dist = Math.sqrt(dx*dx + dy*dy);
+    
+    if (Math.abs(dist - STATE.orbitRadius) < 25) { // Larger touch target
+        const angle = Math.atan2(dy, dx); 
+        let normClick = angle;
+        if(normClick < 0) normClick += Math.PI*2;
+
+        const hitTrigger = STATE.triggers.find(t => {
+            let tAngle = t.angle;
+            if(tAngle < 0) tAngle += Math.PI*2;
+            let diff = Math.abs(tAngle - normClick);
+            if (diff > Math.PI) diff = 2 * Math.PI - diff;
+            return diff < 0.2; // Larger tolerance
+        });
+
+        if (hitTrigger) {
+            dragTarget = { type: 'trigger', obj: hitTrigger };
+        } else {
+            const newT = { id: Date.now(), angle: angle, shift: 0 };
+            STATE.triggers.push(newT);
+            dragTarget = { type: 'trigger', obj: newT };
+        }
+        isDragging = true;
+        dragStartTime = Date.now();
+    }
+}
+
+function handleMove(x, y) {
+    const rect = canvas.getBoundingClientRect();
+    const mx = x - rect.left;
+    const my = y - rect.top;
+
+    // SLINGSHOT DRAG UPDATE
+    if (STATE.slingshot.isDragging) {
+        STATE.slingshot.pullX = mx;
+        STATE.slingshot.pullY = my;
+        return;
+    }
+
+    if (isDragging && dragTarget) {
+        const dx = mx - centerX;
+        const dy = my - centerY;
+        const newAngle = Math.atan2(dy, dx);
+        
+        if (dragTarget.type === 'trigger') {
+            const tObj = dragTarget.obj;
+            const oldAngle = tObj.angle;
+            
+            let dAngle = newAngle - oldAngle;
+            while (dAngle <= -Math.PI) dAngle += 2*Math.PI;
+            while (dAngle > Math.PI) dAngle -= 2*Math.PI;
+
+            STATE.planets.forEach(p => {
+                const pAngle = normalizeAngle(p.angle);
+                let dP = pAngle - oldAngle;
+                while (dP <= -Math.PI) dP += 2*Math.PI;
+                while (dP > Math.PI) dP -= 2*Math.PI;
+                
+                let hit = false;
+                if (dAngle > 0 && dP > 0 && dP <= dAngle) hit = true;
+                if (dAngle < 0 && dP < 0 && dP >= dAngle) hit = true;
+
+                if(hit) {
+                    const noteToPlay = MusicTheory.getShiftedNote(STATE.root, STATE.scale, p.note, tObj.shift);
+                    AudioEngine.playNote(noteToPlay, p.velocity);
+                    MidiEngine.sendNote(noteToPlay, p.velocity);
+                    p.flash = 1.0;
+                }
+            });
+            tObj.angle = newAngle;
+        }
+        else if (dragTarget.type === 'planet') {
+            const pObj = dragTarget.obj;
+            const oldAngle = pObj.angle;
+
+            let dAngle = newAngle - oldAngle;
+            while (dAngle <= -Math.PI) dAngle += 2*Math.PI;
+            while (dAngle > Math.PI) dAngle -= 2*Math.PI;
+
+            STATE.triggers.forEach(t => {
+                const tAngle = normalizeAngle(t.angle);
+                let dT = tAngle - oldAngle;
+                while (dT <= -Math.PI) dT += 2*Math.PI;
+                while (dT > Math.PI) dT -= 2*Math.PI;
+
+                let hit = false;
+                if (dAngle > 0 && dT > 0 && dT <= dAngle) hit = true;
+                if (dAngle < 0 && dT < 0 && dT >= dAngle) hit = true;
+
+                if (hit) {
+                    const noteToPlay = MusicTheory.getShiftedNote(STATE.root, STATE.scale, pObj.note, t.shift);
+                    AudioEngine.playNote(noteToPlay, pObj.velocity);
+                    MidiEngine.sendNote(noteToPlay, pObj.velocity);
+                    pObj.flash = 1.0;
+                }
+            });
+            pObj.angle = newAngle;
+        }
+    }
+}
+
+function handleEnd() {
+    // RELEASE SLINGSHOT
+    if (STATE.slingshot.isDragging) {
+        STATE.slingshot.isDragging = false;
+        
+        const dx = centerX - STATE.slingshot.pullX;
+        const dy = centerY - STATE.slingshot.pullY;
+        const power = 4.0; 
+        
+        // Spawn New Orb (Limit 32)
+        if (STATE.projectiles.length < 32) {
+            STATE.projectiles.push({
+                x: centerX,
+                y: centerY,
+                vx: dx * power,
+                vy: dy * power,
+                color: STATE.centerColor
+            });
+        }
+    }
+
+    if (isDragging) {
+        const duration = Date.now() - dragStartTime;
+        if (duration < 300) { 
+            if (dragTarget.type === 'trigger') openTrigger(dragTarget.obj);
+            if (dragTarget.type === 'planet') openPlanet(dragTarget.obj);
+        }
+    }
+    isDragging = false;
+    dragTarget = null;
+}
+
+// MOUSE EVENTS
+canvas.addEventListener('mousedown', e => handleStart(e.clientX, e.clientY));
+canvas.addEventListener('mousemove', e => handleMove(e.clientX, e.clientY));
+canvas.addEventListener('mouseup', handleEnd);
+
+// TOUCH EVENTS
+canvas.addEventListener('touchstart', e => {
+    e.preventDefault();
+    handleStart(e.touches[0].clientX, e.touches[0].clientY);
+}, {passive: false});
+
+canvas.addEventListener('touchmove', e => {
+    e.preventDefault();
+    handleMove(e.touches[0].clientX, e.touches[0].clientY);
+}, {passive: false});
+
+canvas.addEventListener('touchend', e => {
+    e.preventDefault();
+    handleEnd();
+}, {passive: false});
+
+
+let lastTime = 0;
+function loop(time) {
+    requestAnimationFrame(loop);
+    
+    if (lastTime === 0 || (time - lastTime) > 1000) {
+        lastTime = time;
+        return; 
+    }
+    const dt = (time - lastTime) / 1000;
+    lastTime = time;
+    
+    // === PROJECTILE PHYSICS ===
+    STATE.projectiles.forEach(orb => {
+        orb.x += orb.vx * dt;
+        orb.y += orb.vy * dt;
+
+        // CIRCULAR BOUNDARY COLLISION
+        const dx = orb.x - centerX;
+        const dy = orb.y - centerY;
+        const dist = Math.sqrt(dx*dx + dy*dy);
+        const limit = STATE.orbitRadius - 5; 
+
+        if (dist > limit) {
+            const nx = dx / dist;
+            const ny = dy / dist;
+            
+            const dot = orb.vx * nx + orb.vy * ny;
+            orb.vx = orb.vx - 2 * dot * nx;
+            orb.vy = orb.vy - 2 * dot * ny;
+            
+            orb.x = centerX + nx * limit;
+            orb.y = centerY + ny * limit;
+        }
+
+        // Collision Check with Planets
+        STATE.planets.forEach(p => {
+            if(p.cooldown > 0) p.cooldown -= dt; 
+
+            const px = centerX + Math.cos(p.angle) * STATE.orbitRadius;
+            const py = centerY + Math.sin(p.angle) * STATE.orbitRadius;
+            const distP = Math.sqrt(Math.pow(orb.x - px, 2) + Math.pow(orb.y - py, 2));
+            
+            if (distP < 15 && (!p.cooldown || p.cooldown <= 0)) {
+                AudioEngine.playNote(p.note, p.velocity);
+                MidiEngine.sendNote(p.note, p.velocity);
+                p.flash = 1.0;
+                STATE.centerColor = p.color;
+                orb.color = p.color; 
+                p.cooldown = 0.2; 
+            }
+        });
+    });
+
+    // === SEQUENCER PHYSICS ===
+    STATE.planets.forEach(p => {
+        if (dragTarget && dragTarget.type === 'planet' && dragTarget.obj === p) {
+        } 
+        else if (STATE.isRunning && !STATE.isPaused) {
+            const currentRPM = p.rpm * STATE.globalSpeed;
+            const speed = (currentRPM * Math.PI * 2) / 60;
+            const prevAngle = p.angle;
+            
+            p.angle += speed * STATE.direction * dt;
+            
+            let normAngle = p.angle % (Math.PI*2);
+            if(normAngle < 0) normAngle += Math.PI*2;
+            
+            let prevNorm = prevAngle % (Math.PI*2);
+            if(prevNorm < 0) prevNorm += Math.PI*2;
+            
+            STATE.triggers.forEach(trig => {
+                let t = trig.angle % (Math.PI*2);
+                if(t < 0) t += Math.PI*2;
+                
+                let didCross = false;
+                
+                if (STATE.direction === -1) {
+                    if (prevNorm > t && normAngle <= t) {
+                         if (Math.abs(prevNorm - normAngle) < Math.PI) didCross = true;
+                    }
+                    if (prevNorm < normAngle) { 
+                        if ( (t < prevNorm) || (t > normAngle) ) didCross = true;
+                    }
+                } else {
+                    if (prevNorm < t && normAngle >= t) {
+                         if (Math.abs(prevNorm - normAngle) < Math.PI) didCross = true;
+                    }
+                    if (prevNorm > normAngle) {
+                        if ( (t > prevNorm) || (t < normAngle) ) didCross = true;
+                    }
+                }
+                
+                if (didCross) {
+                    const noteToPlay = MusicTheory.getShiftedNote(STATE.root, STATE.scale, p.note, trig.shift);
+                    AudioEngine.playNote(noteToPlay, p.velocity);
+                    MidiEngine.sendNote(noteToPlay, p.velocity);
+                    p.flash = 1.0;
+                }
+            });
+        }
+    });
+
+    // === DRAWING ===
+    ctx.clearRect(0,0,canvasW,canvasH);
+    
+    // Draw Center / Slingshot
+    if (STATE.slingshot.active) {
+        ctx.beginPath();
+        if (STATE.slingshot.isDragging) {
+            ctx.moveTo(centerX, centerY);
+            ctx.lineTo(STATE.slingshot.pullX, STATE.slingshot.pullY);
+            ctx.strokeStyle = STATE.centerColor;
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            
+            ctx.beginPath();
+            ctx.arc(STATE.slingshot.pullX, STATE.slingshot.pullY, 8, 0, Math.PI*2);
+            ctx.fillStyle = STATE.centerColor;
+            ctx.fill();
+        } else {
+            ctx.arc(centerX, centerY, 8, 0, Math.PI*2);
+            ctx.fillStyle = STATE.centerColor;
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, 15, 0, Math.PI*2);
+            ctx.strokeStyle = STATE.centerColor;
+            ctx.lineWidth = 1;
+            ctx.stroke();
+        }
+    }
+
+    // Draw Projectiles
+    STATE.projectiles.forEach(orb => {
+        ctx.beginPath();
+        ctx.arc(orb.x, orb.y, 5, 0, Math.PI*2);
+        ctx.fillStyle = orb.color;
+        ctx.fill();
+    });
+    
+    // Triggers
+    STATE.triggers.forEach(tObj => {
+        const t = tObj.angle;
+        const tx = centerX + Math.cos(t) * (STATE.orbitRadius + 15);
+        const ty = centerY + Math.sin(t) * (STATE.orbitRadius + 15);
+        const txIn = centerX + Math.cos(t) * (STATE.orbitRadius - 15);
+        const tyIn = centerY + Math.sin(t) * (STATE.orbitRadius - 15);
+        
+        ctx.beginPath();
+        ctx.moveTo(txIn, tyIn);
+        ctx.lineTo(tx, ty);
+        ctx.lineWidth = 6;
+
+        if (tObj.shift === 0) {
+             ctx.strokeStyle = '#f04e23'; 
+             ctx.lineWidth = 4;
+        } else if (tObj.shift > 0) {
+             const lightenAmount = (tObj.shift - 1) * 15;
+             ctx.strokeStyle = adjustColor('#cf6325', lightenAmount);
+        } else {
+             const darkenAmount = (tObj.shift + 1) * 15;
+             ctx.strokeStyle = adjustColor('#364a59', darkenAmount);
+        }
+        
+        ctx.stroke();
+    });
+
+    // Main Orbit
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, STATE.orbitRadius, 0, Math.PI*2);
+    ctx.strokeStyle = getComputedStyle(document.body).getPropertyValue('--ink-color');
+    ctx.globalAlpha = 0.3;
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+    
+    // Planets
+    STATE.planets.forEach((p, i) => {
+        const x = centerX + Math.cos(p.angle) * STATE.orbitRadius;
+        const y = centerY + Math.sin(p.angle) * STATE.orbitRadius;
+        
+        if(p.flash > 0) {
+            ctx.beginPath();
+            ctx.arc(x, y, 25 * p.flash, 0, Math.PI*2);
+            ctx.strokeStyle = p.color;
+            ctx.globalAlpha = p.flash;
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            ctx.globalAlpha = 1;
+            p.flash -= 4 * dt; 
+        }
+
+        ctx.beginPath();
+        ctx.arc(x, y, 10, 0, Math.PI*2);
+        ctx.fillStyle = p.color;
+        ctx.fill();
+        ctx.strokeStyle = '#fff';
+        if (dragTarget && dragTarget.type === 'planet' && dragTarget.obj === p) {
+            ctx.lineWidth = 4;
+            ctx.strokeStyle = '#fff'; 
+        } else {
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = '#fff';
+        }
+        ctx.stroke();
+    });
+}
+
+document.getElementById('start-overlay').addEventListener('click', () => {
+    AudioEngine.init();
+    MidiEngine.init();
+    updatePlanetList();
+    STATE.isRunning = true;
+    lastTime = 0; 
+    document.getElementById('start-overlay').style.display = 'none';
+    requestAnimationFrame(loop);
+});
+
+// Touch to start overlay
+document.getElementById('start-overlay').addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    document.getElementById('start-overlay').click();
+}, {passive: false});
+
+</script>
+</body>
+</html>
