@@ -179,6 +179,7 @@
 
         /* PLANET LIST */
         #planet-list-wrap {
+            --chip-size: 18px;
             display: flex;
             gap: 10px;
             align-items: center;
@@ -197,6 +198,8 @@
             width: var(--chip-size, 16px);
             height: var(--chip-size, 16px);
             aspect-ratio: 1 / 1;
+            flex: 0 0 var(--chip-size, 16px);
+            box-sizing: border-box;
             border-radius: 50%;
             border: 1px solid rgba(0,0,0,0.2);
             background: var(--panel-bg);
@@ -223,6 +226,8 @@
             width: var(--chip-size, 16px);
             height: var(--chip-size, 16px);
             aspect-ratio: 1 / 1;
+            flex: 0 0 var(--chip-size, 16px);
+            box-sizing: border-box;
             border-radius: 50%;
             cursor: pointer;
             border: 1px solid rgba(0,0,0,0.1);
@@ -231,6 +236,12 @@
             display: inline-block;
         }
         .planet-chip.active { box-shadow: 0 0 0 2px var(--ink-color); transform: scale(1.3); }
+
+        #transpose-label {
+            display: inline-block;
+            width: 3ch;
+            text-align: center;
+        }
 
         /* SLIDERS */
         .macro-slider-container {
@@ -388,7 +399,7 @@
 
     <div id="start-overlay">
         <h1 style="font-size: 3em; letter-spacing: 4px; font-weight: 300; text-align: center;">LES CERCLES</h1>
-        <p style="color: var(--ink-color); opacity: 0.5; margin-top: 10px; font-size: 0.8em;">TAP TO INITIALIZE</p>
+        <p style="color: var(--ink-color); opacity: 0.5; margin-top: 10px; font-size: 0.8em;">CLICK TO INITIALIZE</p>
     </div>
 
     <input type="file" id="file-input" style="display: none;" accept=".json" onchange="handleFileLoad(this)">
@@ -1325,8 +1336,9 @@ function closePanel(id) {
 let dragTarget = null; 
 let isDragging = false;
 let dragStartTime = 0;
+let dragAllTriggers = false;
 
-function handleStart(x, y) {
+function handleStart(x, y, altKey = false) {
     const rect = canvas.getBoundingClientRect();
     const mx = x - rect.left;
     const my = y - rect.top;
@@ -1379,11 +1391,13 @@ function handleStart(x, y) {
         if (hitTrigger) {
             pushUndoState();
             dragTarget = { type: 'trigger', obj: hitTrigger };
+            dragAllTriggers = altKey;
         } else {
             pushUndoState();
             const newT = { id: Date.now(), angle: angle, shift: 0 };
             STATE.triggers.push(newT);
             dragTarget = { type: 'trigger', obj: newT };
+            dragAllTriggers = false;
         }
         isDragging = true;
         dragStartTime = Date.now();
@@ -1414,6 +1428,14 @@ function handleMove(x, y) {
             let dAngle = newAngle - oldAngle;
             while (dAngle <= -Math.PI) dAngle += 2*Math.PI;
             while (dAngle > Math.PI) dAngle -= 2*Math.PI;
+
+            if (dragAllTriggers) {
+                STATE.triggers.forEach(t => {
+                    t.angle += dAngle;
+                });
+                tObj.angle = newAngle;
+                return;
+            }
 
             STATE.planets.forEach(p => {
                 const pAngle = normalizeAngle(p.angle);
@@ -1504,17 +1526,18 @@ function handleEnd() {
     }
     isDragging = false;
     dragTarget = null;
+    dragAllTriggers = false;
 }
 
 // MOUSE EVENTS
-canvas.addEventListener('mousedown', e => handleStart(e.clientX, e.clientY));
+canvas.addEventListener('mousedown', e => handleStart(e.clientX, e.clientY, e.altKey));
 canvas.addEventListener('mousemove', e => handleMove(e.clientX, e.clientY));
 canvas.addEventListener('mouseup', handleEnd);
 
 // TOUCH EVENTS
 canvas.addEventListener('touchstart', e => {
     e.preventDefault();
-    handleStart(e.touches[0].clientX, e.touches[0].clientY);
+    handleStart(e.touches[0].clientX, e.touches[0].clientY, false);
 }, {passive: false});
 
 canvas.addEventListener('touchmove', e => {
