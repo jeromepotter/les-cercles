@@ -958,6 +958,74 @@ const AudioEngine = (() => {
 
     return { init, toggle, playNote, setVolume };
 })();
+    /**
+ * MIDI ENGINE
+ */
+const MidiEngine = (() => {
+    let access = null;
+    let selectedOutput = null;
+    let selectedOutputId = "";
+
+    async function init() {
+        if(!navigator.requestMIDIAccess) return;
+        try {
+            access = await navigator.requestMIDIAccess();
+            access.onstatechange = scan;
+            scan();
+        } catch(e) { console.log("MIDI Fail"); }
+    }
+
+    function scan() {
+        const sel = document.getElementById('midi-select');
+        sel.innerHTML = '<option value="">MIDI...</option>';
+        if(!access) return;
+        const currentId = selectedOutputId || sel.value;
+        let matched = false;
+        const iter = access.outputs.values();
+        for(let o = iter.next(); !o.done; o = iter.next()) {
+            const opt = document.createElement('option');
+            opt.value = o.value.id;
+            opt.innerText = o.value.name;
+            if(currentId && o.value.id === currentId) {
+                opt.selected = true;
+                selectedOutput = o.value;
+                selectedOutputId = currentId;
+                matched = true;
+            }
+            sel.appendChild(opt);
+        }
+        if(!matched) {
+            selectedOutput = null;
+            selectedOutputId = "";
+        }
+    }
+
+    function selectOutput(id) {
+        if(!access) return;
+        selectedOutputId = id;
+        selectedOutput = null;
+        const iter = access.outputs.values();
+        for(let o = iter.next(); !o.done; o = iter.next()) {
+            if(o.value.id === id) selectedOutput = o.value;
+        }
+    }
+
+    function sendNote(note, velocity) {
+        if(!selectedOutput) return;
+        const notes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+        const oct = parseInt(note.slice(-1));
+        const key = note.slice(0, -1);
+        const idx = notes.indexOf(key);
+        const midiNum = (oct + 1)*12 + idx;
+        const vel = Math.floor(velocity * 127);
+        try {
+            selectedOutput.send([0x90, midiNum, vel]);
+            setTimeout(() => selectedOutput.send([0x80, midiNum, 0]), 100);
+        } catch(e){}
+    }
+
+    return { init, selectOutput, sendNote };
+})();
 
 /**
  * APP LOGIC
