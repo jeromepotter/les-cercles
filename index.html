@@ -167,14 +167,26 @@
         .btn-active { color: var(--accent-orange); opacity: 1; border-bottom: 2px solid var(--accent-orange); }
         .btn-text:disabled { opacity: 0.3; cursor: not-allowed; }
 
+        .btn-circle.add-planet {
+            width: 52px;
+            height: 52px;
+            font-size: 2.1em;
+            font-weight: 400;
+            background: var(--panel-bg);
+            border: 1px solid rgba(0,0,0,0.2);
+            box-shadow: var(--shadow);
+            opacity: 0.95;
+        }
+
         /* PLANET LIST */
-        #planet-list {
+        #planet-list-wrap {
             position: absolute;
             bottom: 100px; 
             left: 50%;
             transform: translateX(-50%);
             display: flex;
-            gap: 8px;
+            gap: 10px;
+            align-items: center;
             pointer-events: auto;
             background: rgba(255,255,255,0.2);
             padding: 8px 16px;
@@ -184,6 +196,14 @@
             max-width: 90vw;
             overflow-x: auto;
             z-index: 15;
+        }
+
+        #planet-list {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            max-width: 100%;
+            overflow-x: auto;
         }
 
         .planet-chip {
@@ -334,7 +354,7 @@
                 border: 1px solid rgba(0,0,0,0.1);
             }
             
-            #planet-list {
+            #planet-list-wrap {
                 bottom: 140px; 
             }
             
@@ -367,11 +387,13 @@
 
         <canvas id="mainCanvas"></canvas>
         
-        <div id="planet-list"></div>
+        <div id="planet-list-wrap">
+            <button class="btn-circle add-planet" onclick="addPlanet()">+</button>
+            <div id="planet-list"></div>
+        </div>
 
         <div id="controls-bar">
             <div class="control-group">
-                <div class="btn-circle" onclick="addPlanet()">+</div>
                 <button id="btn-play" class="btn-text" onclick="togglePlay()">PLAY</button>
                 <button id="btn-undo" class="btn-text" onclick="undoLastMove()" disabled>UNDO</button>
                 <button class="btn-text" onclick="clearAll()">CLEAR</button>
@@ -386,6 +408,11 @@
                 <div class="macro-slider-container">
                     <label>GATES: <span id="gate-label">1</span></label>
                     <input id="gate-range" type="range" min="1" max="32" step="1" value="1" oninput="updateGates(this.value)">
+                </div>
+
+                <div class="macro-slider-container">
+                    <label>TRANSPOSE</label>
+                    <input id="transpose-range" type="range" min="-7" max="7" step="1" value="0" oninput="updateGlobalTranspose(this.value)">
                 </div>
 
                 <button class="btn-text" onclick="randomizeGateTranspose()">RND</button>
@@ -513,6 +540,7 @@ const STATE = {
     editingId: null, 
     editingTriggerId: null, 
     globalSpeed: 1.0,
+    gateTranspose: 0,
     direction: -1,
     projectiles: [], 
     slingshot: { active: false, isDragging: false, pullX: 0, pullY: 0 },
@@ -530,6 +558,7 @@ function createUndoSnapshot() {
         scale: STATE.scale,
         customScale: [...STATE.customScale],
         globalSpeed: STATE.globalSpeed,
+        gateTranspose: STATE.gateTranspose,
         direction: STATE.direction,
         isPaused: STATE.isPaused
     };
@@ -548,6 +577,7 @@ function applyUndoSnapshot(snapshot) {
     STATE.scale = snapshot.scale;
     STATE.customScale = [...snapshot.customScale];
     STATE.globalSpeed = snapshot.globalSpeed;
+    STATE.gateTranspose = snapshot.gateTranspose ?? 0;
     STATE.direction = snapshot.direction;
     STATE.isPaused = snapshot.isPaused;
 
@@ -565,6 +595,8 @@ function applyUndoSnapshot(snapshot) {
 
     const speedRange = document.getElementById('speed-range');
     if (speedRange) speedRange.value = STATE.globalSpeed;
+    const transposeRange = document.getElementById('transpose-range');
+    if (transposeRange) transposeRange.value = STATE.gateTranspose;
     syncGateUI();
     updatePlayButton();
     updatePlanetList();
@@ -969,6 +1001,7 @@ function savePattern() {
         scale: STATE.scale,
         customScale: STATE.customScale,
         globalSpeed: STATE.globalSpeed,
+        gateTranspose: STATE.gateTranspose,
         direction: STATE.direction
     };
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data));
@@ -997,6 +1030,7 @@ function handleFileLoad(input) {
             STATE.scale = data.scale;
             if(data.customScale) STATE.customScale = data.customScale;
             STATE.globalSpeed = data.globalSpeed;
+            STATE.gateTranspose = data.gateTranspose || 0;
             
             STATE.direction = data.direction || -1; 
             const isCW = STATE.direction === 1;
@@ -1006,6 +1040,8 @@ function handleFileLoad(input) {
 
             const speedRange = document.getElementById('speed-range');
             if (speedRange) speedRange.value = STATE.globalSpeed;
+            const transposeRange = document.getElementById('transpose-range');
+            if (transposeRange) transposeRange.value = STATE.gateTranspose;
             syncGateUI();
 
             updatePlanetList();
@@ -1031,6 +1067,21 @@ function updateGlobalSpeed(val) {
              document.getElementById('p-rpm').value = effectiveRPM.toFixed(2);
         }
     }
+}
+
+function clampShift(value) {
+    return Math.max(-7, Math.min(7, value));
+}
+
+function getEffectiveTriggerShift(shift) {
+    return clampShift(shift + STATE.gateTranspose);
+}
+
+function updateGlobalTranspose(val) {
+    pushUndoState();
+    STATE.gateTranspose = clampShift(parseInt(val, 10) || 0);
+    const transposeRange = document.getElementById('transpose-range');
+    if (transposeRange) transposeRange.value = STATE.gateTranspose;
 }
 
 function addPlanet() {
@@ -1312,7 +1363,12 @@ function handleMove(x, y) {
                 if (dAngle < 0 && dP < 0 && dP >= dAngle) hit = true;
 
                 if(hit) {
-                    const noteToPlay = MusicTheory.getShiftedNote(STATE.root, STATE.scale, p.note, tObj.shift);
+                    const noteToPlay = MusicTheory.getShiftedNote(
+                        STATE.root,
+                        STATE.scale,
+                        p.note,
+                        getEffectiveTriggerShift(tObj.shift)
+                    );
                     AudioEngine.playNote(noteToPlay, p.velocity);
                     MidiEngine.sendNote(noteToPlay, p.velocity);
                     p.flash = 1.0;
@@ -1339,7 +1395,12 @@ function handleMove(x, y) {
                 if (dAngle < 0 && dT < 0 && dT >= dAngle) hit = true;
 
                 if (hit) {
-                    const noteToPlay = MusicTheory.getShiftedNote(STATE.root, STATE.scale, pObj.note, t.shift);
+                    const noteToPlay = MusicTheory.getShiftedNote(
+                        STATE.root,
+                        STATE.scale,
+                        pObj.note,
+                        getEffectiveTriggerShift(t.shift)
+                    );
                     AudioEngine.playNote(noteToPlay, pObj.velocity);
                     MidiEngine.sendNote(noteToPlay, pObj.velocity);
                     pObj.flash = 1.0;
@@ -1497,7 +1558,12 @@ function loop(time) {
                 }
                 
                 if (didCross) {
-                    const noteToPlay = MusicTheory.getShiftedNote(STATE.root, STATE.scale, p.note, trig.shift);
+                    const noteToPlay = MusicTheory.getShiftedNote(
+                        STATE.root,
+                        STATE.scale,
+                        p.note,
+                        getEffectiveTriggerShift(trig.shift)
+                    );
                     AudioEngine.playNote(noteToPlay, p.velocity);
                     MidiEngine.sendNote(noteToPlay, p.velocity);
                     p.flash = 1.0;
