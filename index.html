@@ -758,8 +758,8 @@ const MusicTheory = (() => {
 
 
 /**
- * AUDIO ENGINE - "Glassy Marimba" (Modal Synthesis)
- * Replaces simple Oscillator with a Physical Model of a glass bar.
+ * AUDIO ENGINE - "Glassy Marimba" (LOUDER VERSION)
+ * High-gain Modal Synthesis to compensate for bandpass energy loss.
  */
 const AudioEngine = (() => {
     let ctx = null;
@@ -767,44 +767,40 @@ const AudioEngine = (() => {
     let limiter = null;
     let noiseBuffer = null;
 
-    // Ratios for the "Glass" partials (inharmonic)
-    // These match the SuperCollider ratios: [1, 2.32, 4.25, 6.63, 9.38]
+    // Ratios for the "Glass" partials
     const PARTIALS = [1.0, 2.32, 4.25, 6.63, 9.38];
-    
-    // Decay times for each partial (lower partials ring longer)
     const DECAYS = [1.5, 1.2, 0.8, 0.6, 0.4];
-    
-    // Gains for each partial
-const GAINS = [1.0, 0.6, 0.4, 0.3, 0.2];
+    const GAINS = [1.0, 0.6, 0.4, 0.3, 0.2];
 
     // *** THE FIX: MAKEUP GAIN ***
     // We multiply the output by 40 to recover the volume lost by filtering
-    const MAKEUP_GAIN = 40.0;    
+    const MAKEUP_GAIN = 40.0; 
 
     function init() {
         if(!ctx) {
             ctx = new (window.AudioContext || window.webkitAudioContext)();
             
-            // Master Chain
+            // Dynamics Compressor (Limiter)
+            // Keeps the volume in check so the new boost doesn't clip
             limiter = ctx.createDynamicsCompressor();
-            limiter.threshold.value = -10;
-            limiter.ratio.value = 12;
+            limiter.threshold.value = -1.0; 
+            limiter.ratio.value = 20.0;
             limiter.attack.value = 0.005;
-            limiter.release.value = 0.05;
+            limiter.release.value = 0.1;
             
             masterGain = ctx.createGain();
-            masterGain.gain.value = 0.4; 
+            masterGain.gain.value = 0.5; // Overall volume control
 
             masterGain.connect(limiter);
             limiter.connect(ctx.destination);
 
-            // Create "Mallet" Noise Burst Buffer (Static)
-            // We generate 0.1s of noise once to save CPU
+            // Create "Mallet" Noise Burst (Full Amplitude)
             const bufferSize = ctx.sampleRate * 0.1; 
             noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
             const data = noiseBuffer.getChannelData(0);
             for (let i = 0; i < bufferSize; i++) {
-                data[i] = (Math.random() * 2 - 1) * 0.5; // Pink/White noise
+                // Full range (-1.0 to 1.0) for maximum energy
+                data[i] = Math.random() * 2 - 1; 
             }
         }
         if(ctx.state === 'suspended') ctx.resume();
@@ -814,7 +810,7 @@ const GAINS = [1.0, 0.6, 0.4, 0.3, 0.2];
         if(!ctx) init();
         STATE.audioEnabled = !STATE.audioEnabled;
         if(masterGain) {
-            masterGain.gain.setTargetAtTime(STATE.audioEnabled ? 0.4 : 0, ctx.currentTime, 0.1);
+            masterGain.gain.setTargetAtTime(STATE.audioEnabled ? 0.5 : 0, ctx.currentTime, 0.1);
         }
         document.getElementById('audio-label').innerText = STATE.audioEnabled ? "ON" : "OFF";
     }
@@ -822,7 +818,6 @@ const GAINS = [1.0, 0.6, 0.4, 0.3, 0.2];
     function playNote(note, velocity=1.0) {
         if(!ctx || !STATE.audioEnabled) return;
 
-        // 1. Convert Note to Frequency
         const notes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
         const oct = parseInt(note.slice(-1));
         const key = note.slice(0, -1);
@@ -831,55 +826,43 @@ const GAINS = [1.0, 0.6, 0.4, 0.3, 0.2];
         const fundamental = 440 * Math.pow(2, (midi-69)/12);
 
         const t = ctx.currentTime;
-
-        // 2. The "Mallet" (Exciter)
-        // A short burst of noise fed into the filters
         const source = ctx.createBufferSource();
         source.buffer = noiseBuffer;
         
-        // Mallet Lowpass (Harder hits = brighter sound)
+        // Mallet Filter (Brightness)
         const malletFilter = ctx.createBiquadFilter();
         malletFilter.type = "lowpass";
-        malletFilter.frequency.value = 200 + (velocity * 3000); 
+        malletFilter.frequency.value = 400 + (velocity * 4000); 
         
-        // Envelope for the mallet strike (very short)
+        // Mallet Envelope
         const malletGain = ctx.createGain();
         malletGain.gain.setValueAtTime(0, t);
         malletGain.gain.linearRampToValueAtTime(velocity, t + 0.001);
-        malletGain.gain.exponentialRampToValueAtTime(0.01, t + 0.02);
+        malletGain.gain.exponentialRampToValueAtTime(0.01, t + 0.03); // Slightly longer strike
 
         source.connect(malletFilter);
         malletFilter.connect(malletGain);
 
-        // 3. The "Glass Bar" (Resonator Bank)
-        // We create parallel Bandpass filters for each partial
         PARTIALS.forEach((ratio, i) => {
             const freq = fundamental * ratio;
-            
-            // Prevent aliasing/errors at high freq
             if (freq > ctx.sampleRate / 2) return; 
 
             const bandpass = ctx.createBiquadFilter();
             bandpass.type = "bandpass";
             bandpass.frequency.value = freq;
-            
-            // Q controls how long it rings. 
-            // Higher Q = narrower band = longer decay.
-            // Formula approximate: Q = freq * decay / 2
             bandpass.Q.value = (freq * DECAYS[i]) / 2; 
 
-            // Gain per partial
             const partialGain = ctx.createGain();
-            partialGain.gain.value = GAINS[i];
+            // Apply the MAKEUP_GAIN here
+            partialGain.gain.value = GAINS[i] * MAKEUP_GAIN;
 
-            // Connect: Exciter -> Bandpass -> PartialGain -> Master
             malletGain.connect(bandpass);
             bandpass.connect(partialGain);
             partialGain.connect(masterGain);
         });
 
         source.start(t);
-        source.stop(t + 2.0); // Cleanup source
+        source.stop(t + 2.0);
     }
 
     return { init, toggle, playNote };
