@@ -165,6 +165,7 @@
         }
         .btn-text:active { background: rgba(0,0,0,0.05); opacity: 1; }
         .btn-active { color: var(--accent-orange); opacity: 1; border-bottom: 2px solid var(--accent-orange); }
+        .btn-text:disabled { opacity: 0.3; cursor: not-allowed; }
 
         /* PLANET LIST */
         #planet-list {
@@ -371,7 +372,8 @@
         <div id="controls-bar">
             <div class="control-group">
                 <div class="btn-circle" onclick="addPlanet()">+</div>
-                <button class="btn-text" onclick="STATE.isPaused = !STATE.isPaused">PLAY</button>
+                <button id="btn-play" class="btn-text" onclick="togglePlay()">PLAY</button>
+                <button id="btn-undo" class="btn-text" onclick="undoLastMove()" disabled>UNDO</button>
                 <button class="btn-text" onclick="clearAll()">CLEAR</button>
                 <button class="btn-text" onclick="syncRPMs()">SYNC</button>
                 <button class="btn-text" onclick="evenSpacePlanets()">EVEN</button>
@@ -383,14 +385,14 @@
 
                 <div class="macro-slider-container">
                     <label>GATES: <span id="gate-label">1</span></label>
-                    <input type="range" min="1" max="32" step="1" value="1" oninput="updateGates(this.value)">
+                    <input id="gate-range" type="range" min="1" max="32" step="1" value="1" oninput="updateGates(this.value)">
                 </div>
 
                 <button class="btn-text" onclick="randomizeGateTranspose()">RND</button>
 
                 <div class="macro-slider-container">
                     <label>SPEED</label>
-                    <input type="range" min="0.1" max="3.0" step="0.1" value="1.0" oninput="updateGlobalSpeed(this.value)">
+                    <input id="speed-range" type="range" min="0.1" max="3.0" step="0.1" value="1.0" oninput="updateGlobalSpeed(this.value)">
                 </div>
             </div>
         </div>
@@ -516,6 +518,70 @@ const STATE = {
     slingshot: { active: false, isDragging: false, pullX: 0, pullY: 0 },
     centerColor: 'var(--ink-color)' 
 };
+
+const UNDO_LIMIT = 20;
+const undoStack = [];
+
+function createUndoSnapshot() {
+    return {
+        planets: STATE.planets.map(p => ({ ...p })),
+        triggers: STATE.triggers.map(t => ({ ...t })),
+        root: STATE.root,
+        scale: STATE.scale,
+        customScale: [...STATE.customScale],
+        globalSpeed: STATE.globalSpeed,
+        direction: STATE.direction,
+        isPaused: STATE.isPaused
+    };
+}
+
+function pushUndoState() {
+    undoStack.push(createUndoSnapshot());
+    if (undoStack.length > UNDO_LIMIT) undoStack.shift();
+    updateUndoButton();
+}
+
+function applyUndoSnapshot(snapshot) {
+    STATE.planets = snapshot.planets.map(p => ({ ...p }));
+    STATE.triggers = snapshot.triggers.map(t => ({ ...t }));
+    STATE.root = snapshot.root;
+    STATE.scale = snapshot.scale;
+    STATE.customScale = [...snapshot.customScale];
+    STATE.globalSpeed = snapshot.globalSpeed;
+    STATE.direction = snapshot.direction;
+    STATE.isPaused = snapshot.isPaused;
+
+    STATE.editingId = null;
+    STATE.editingTriggerId = null;
+    document.getElementById('planet-panel').style.display = 'none';
+    document.getElementById('trigger-panel').style.display = 'none';
+    document.getElementById('global-panel').style.display = 'none';
+
+    const btn = document.getElementById('btn-dir');
+    const isCW = STATE.direction === 1;
+    btn.innerText = isCW ? "CW" : "CCW";
+    if (isCW) document.body.classList.add('dark-mode');
+    else document.body.classList.remove('dark-mode');
+
+    const speedRange = document.getElementById('speed-range');
+    if (speedRange) speedRange.value = STATE.globalSpeed;
+    syncGateUI();
+    updatePlayButton();
+    updatePlanetList();
+}
+
+function undoLastMove() {
+    if (undoStack.length === 0) return;
+    const snapshot = undoStack.pop();
+    applyUndoSnapshot(snapshot);
+    updateUndoButton();
+}
+
+function updateUndoButton() {
+    const btn = document.getElementById('btn-undo');
+    if (!btn) return;
+    btn.disabled = undoStack.length === 0;
+}
 
 /**
  * MUSIC LOGIC
@@ -744,13 +810,32 @@ resize();
 
 function toggleAudio() { AudioEngine.toggle(); }
 
+function updatePlayButton() {
+    const btn = document.getElementById('btn-play');
+    if (!btn) return;
+    btn.innerText = STATE.isPaused ? "PLAY" : "PAUSE";
+}
+
+function togglePlay() {
+    STATE.isPaused = !STATE.isPaused;
+    updatePlayButton();
+}
+
 function toggleDirection() {
+    pushUndoState();
     STATE.direction *= -1;
     const btn = document.getElementById('btn-dir');
     const isCW = STATE.direction === 1;
     btn.innerText = isCW ? "CW" : "CCW";
     if(isCW) document.body.classList.add('dark-mode');
     else document.body.classList.remove('dark-mode');
+}
+
+function syncGateUI() {
+    const gateCount = STATE.triggers.length;
+    document.getElementById('gate-label').innerText = gateCount;
+    const gateRange = document.getElementById('gate-range');
+    if (gateRange) gateRange.value = gateCount;
 }
 
 function updatePlanetList() {
@@ -776,6 +861,7 @@ function openGlobal() {
 }
 
 function applyGlobal() {
+    pushUndoState();
     STATE.root = document.getElementById('g-root').value;
     STATE.scale = document.getElementById('g-scale').value;
     // TRIGGER QUANTIZATION
@@ -863,6 +949,7 @@ function openScaleEditor() {
 }
 
 function finishCustomScale() {
+    pushUndoState();
     // Explicitly set state so openGlobal reads it correctly
     STATE.scale = 'custom';
     closePanel('scale-editor');
@@ -917,10 +1004,14 @@ function handleFileLoad(input) {
             if(isCW) document.body.classList.add('dark-mode');
             else document.body.classList.remove('dark-mode');
 
-            document.querySelector('input[type=range]').value = STATE.globalSpeed;
+            const speedRange = document.getElementById('speed-range');
+            if (speedRange) speedRange.value = STATE.globalSpeed;
+            syncGateUI();
 
             updatePlanetList();
             closePanel('global-panel');
+            undoStack.length = 0;
+            updateUndoButton();
             alert("Pattern Loaded!");
         } catch(err) {
             console.error(err);
@@ -944,6 +1035,7 @@ function updateGlobalSpeed(val) {
 
 function addPlanet() {
     if(STATE.planets.length >= 32) return;
+    pushUndoState();
     const randomNote = MusicTheory.getRandomNoteInRange(STATE.root, STATE.scale, 3, 5);
     const newRPM = 3 + Math.random() * 15;
     const newP = {
@@ -985,6 +1077,7 @@ function openPlanet(p) {
 
 function deletePlanet() {
     if(!STATE.editingId) return;
+    pushUndoState();
     STATE.planets = STATE.planets.filter(p => p.id !== STATE.editingId);
     updatePlanetList();
     closePanel('planet-panel');
@@ -999,6 +1092,7 @@ function openTrigger(t) {
 
 function deleteTrigger() {
     if(!STATE.editingTriggerId) return;
+    pushUndoState();
     STATE.triggers = STATE.triggers.filter(t => t.id !== STATE.editingTriggerId);
     closePanel('trigger-panel');
 }
@@ -1010,7 +1104,10 @@ document.getElementById('t-shift').onchange = (e) => {
     e.target.value = val;
 
     const t = STATE.triggers.find(x => x.id === STATE.editingTriggerId);
-    if(t) t.shift = val;
+    if(t) {
+        pushUndoState();
+        t.shift = val;
+    }
 };
 
 document.getElementById('t-shift').oninput = (e) => {
@@ -1020,14 +1117,17 @@ document.getElementById('t-shift').oninput = (e) => {
 };
 
 function clearAll() {
+    pushUndoState();
     STATE.planets = [];
     STATE.projectiles = []; 
     STATE.triggers = [{ id: Date.now(), angle: Math.random() * Math.PI * 2, shift: 0 }]; 
     updatePlanetList();
+    syncGateUI();
 }
 
 function syncRPMs() {
     if (STATE.planets.length === 0) return;
+    pushUndoState();
     const targetRPM = STATE.planets[0].rpm;
     STATE.planets.forEach(p => {
         p.rpm = targetRPM;
@@ -1044,6 +1144,7 @@ function syncRPMs() {
 function evenSpacePlanets() {
     const count = STATE.planets.length;
     if (count === 0) return;
+    pushUndoState();
     const ordered = STATE.planets.slice().sort((a, b) => a.angle - b.angle);
     ordered.forEach((p, i) => {
         p.angle = (i / count) * (Math.PI * 2);
@@ -1052,6 +1153,7 @@ function evenSpacePlanets() {
 
 function updateGates(val) {
     const count = parseInt(val);
+    pushUndoState();
     document.getElementById('gate-label').innerText = count;
     const previousShifts = STATE.triggers
         .slice()
@@ -1069,6 +1171,7 @@ function updateGates(val) {
 }
 
 function randomizeGateTranspose() {
+    pushUndoState();
     STATE.triggers.forEach(t => {
         t.shift = Math.floor(Math.random() * 15) - 7;
     });
@@ -1076,7 +1179,10 @@ function randomizeGateTranspose() {
 
 document.getElementById('p-note').onchange = (e) => {
     const p = STATE.planets.find(x => x.id === STATE.editingId);
-    if(p) p.note = e.target.value;
+    if(p) {
+        pushUndoState();
+        p.note = e.target.value;
+    }
 };
 
 document.getElementById('p-rpm').oninput = (e) => {
@@ -1131,6 +1237,7 @@ function handleStart(x, y) {
     });
 
     if (hitPlanet) {
+        pushUndoState();
         dragTarget = { type: 'planet', obj: hitPlanet };
         isDragging = true;
         dragStartTime = Date.now();
@@ -1156,8 +1263,10 @@ function handleStart(x, y) {
         });
 
         if (hitTrigger) {
+            pushUndoState();
             dragTarget = { type: 'trigger', obj: hitTrigger };
         } else {
+            pushUndoState();
             const newT = { id: Date.now(), angle: angle, shift: 0 };
             STATE.triggers.push(newT);
             dragTarget = { type: 'trigger', obj: newT };
@@ -1509,6 +1618,7 @@ document.getElementById('start-overlay').addEventListener('click', () => {
     STATE.isRunning = true;
     lastTime = 0; 
     document.getElementById('start-overlay').style.display = 'none';
+    updatePlayButton();
     requestAnimationFrame(loop);
 });
 
