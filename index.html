@@ -788,151 +788,165 @@ const MusicTheory = (() => {
 })();
 
 /**
- * AUDIO ENGINE
+ * AUDIO ENGINE - "Glassy Marimba" (Analyzed from Wav)
+ * Features:
+ * 1. Exact partial ratios extracted from user's Ableton sample.
+ * 2. Stereo Unison (Left/Right Detuning) for "Richness".
+ * 3. Soft Saturation to mimic analog drive.
  */
 const AudioEngine = (() => {
     let ctx = null;
     let masterGain = null;
     let limiter = null;
+    let saturator = null;
+    let noiseBuffer = null;
+
+    // RATIOS: Extracted from 'glassy_marimba_test.wav' analysis
+    // 1.0 (Fund), 2.22 (Sharp 9th), 3.95 (2 Octaves), 5.97 (Perfect 19th)
+    const PARTIALS = [1.0, 2.22, 3.95, 5.97];
+    
+    // DECAYS: Tuned to match the waveform (Highs decay faster)
+    const DECAYS = [3.5, 1.8, 1.2, 0.8];
+    
+    // GAINS: Boosted the highs slightly for clarity
+    const GAINS = [1.0, 0.5, 0.3, 0.15];
+    
+    // DETUNE AMOUNT: In Cents. Adds the "Chorus" width.
+    const DETUNE_AMOUNT = 6; 
+    
+    // VOLUME COMP: Modal synthesis is quiet, this boosts it.
+    const MAKEUP_GAIN = 45.0; 
 
     function init() {
         if(!ctx) {
             ctx = new (window.AudioContext || window.webkitAudioContext)();
-            limiter = ctx.createDynamicsCompressor();
-            limiter.threshold.value = -1; 
-            limiter.knee.value = 5;
-            limiter.ratio.value = 20; 
-            limiter.attack.value = 0.001; 
-            limiter.release.value = 0.1;
             
-            masterGain = ctx.createGain();
-            masterGain.gain.value = STATE.audioEnabled ? STATE.masterVolume : 0; 
+            // 1. LIMITER (Safety for the massive gain)
+            limiter = ctx.createDynamicsCompressor();
+            limiter.threshold.value = -1.0; 
+            limiter.ratio.value = 12.0;
+            limiter.attack.value = 0.002;
+            limiter.release.value = 0.1;
 
+            // 2. SATURATOR (Warmth/Richness)
+            saturator = ctx.createWaveShaper();
+            saturator.curve = makeDistortionCurve(15); // Mild drive
+            saturator.oversample = '4x';
+
+            masterGain = ctx.createGain();
+            masterGain.gain.value = 0.6; 
+
+            // Signal Chain: Saturator -> Master -> Limiter -> Out
+            saturator.connect(masterGain);
             masterGain.connect(limiter);
             limiter.connect(ctx.destination);
+
+            // 3. MALLET NOISE BUFFER (The "Thud")
+            const bufferSize = ctx.sampleRate * 0.1; // 100ms
+            noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+            const data = noiseBuffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) {
+                // Pink-ish noise (simple filter)
+                const white = Math.random() * 2 - 1;
+                data[i] = (i > 0 ? (data[i-1] + white) * 0.5 : white); 
+            }
         }
         if(ctx.state === 'suspended') ctx.resume();
     }
 
-    function setVolume(value) {
-        if(!ctx || !masterGain) return;
-        const target = STATE.audioEnabled ? value : 0;
-        masterGain.gain.cancelScheduledValues(ctx.currentTime);
-        masterGain.gain.setTargetAtTime(target, ctx.currentTime, 0.05);
+    // Warmth Curve Generator
+    function makeDistortionCurve(amount) {
+        const k = typeof amount === 'number' ? amount : 50;
+        const n_samples = 44100;
+        const curve = new Float32Array(n_samples);
+        const deg = Math.PI / 180;
+        for (let i = 0; i < n_samples; ++i) {
+            const x = i * 2 / n_samples - 1;
+            curve[i] = (3 + k) * x * 20 * deg / (Math.PI + k * Math.abs(x));
+        }
+        return curve;
     }
 
     function toggle() {
         if(!ctx) init();
         STATE.audioEnabled = !STATE.audioEnabled;
-        setVolume(STATE.masterVolume);
+        if(masterGain) {
+            masterGain.gain.setTargetAtTime(STATE.audioEnabled ? 0.6 : 0, ctx.currentTime, 0.1);
+        }
         document.getElementById('audio-label').innerText = STATE.audioEnabled ? "ON" : "OFF";
     }
 
     function playNote(note, velocity=1.0) {
         if(!ctx || !STATE.audioEnabled) return;
-        
+
         const notes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
         const oct = parseInt(note.slice(-1));
         const key = note.slice(0, -1);
         const idx = notes.indexOf(key);
         const midi = (oct + 1)*12 + idx;
-        const freq = 440 * Math.pow(2, (midi-69)/12);
-
+        const fundamental = 440 * Math.pow(2, (midi-69)/12);
         const t = ctx.currentTime;
-        const osc = ctx.createOscillator();
-        const filter = ctx.createBiquadFilter();
-        const gain = ctx.createGain();
 
-        osc.type = 'triangle';
-        osc.frequency.setValueAtTime(freq, t);
+        // MALLET SOURCE
+        const source = ctx.createBufferSource();
+        source.buffer = noiseBuffer;
+        
+        // Mallet Filter (Lowpass) - Velocity sensitive
+        const malletFilter = ctx.createBiquadFilter();
+        malletFilter.type = "lowpass";
+        malletFilter.frequency.value = 200 + (velocity * 3000); 
 
-        const cutoff = Math.min(freq * 3, 4000); 
-        filter.type = 'lowpass';
-        filter.frequency.setValueAtTime(cutoff, t);
-        filter.Q.value = 1; 
+        // Mallet Envelope (Short decay)
+        const malletGain = ctx.createGain();
+        malletGain.gain.setValueAtTime(0, t);
+        malletGain.gain.linearRampToValueAtTime(velocity, t + 0.002);
+        malletGain.gain.exponentialRampToValueAtTime(0.001, t + 0.04);
 
-        gain.gain.setValueAtTime(0, t);
-        gain.gain.linearRampToValueAtTime(velocity, t + 0.005);
-        gain.gain.exponentialRampToValueAtTime(0.001, t + 1.2);
+        source.connect(malletFilter);
+        malletFilter.connect(malletGain);
 
-        osc.connect(filter);
-        filter.connect(gain);
-        gain.connect(masterGain);
+        // CREATE STEREO VOICES (Left & Right)
+        const voices = [
+            { pan: -0.5, detune: -DETUNE_AMOUNT }, // Left Voice
+            { pan: 0.5, detune: DETUNE_AMOUNT }    // Right Voice
+        ];
 
-        osc.start(t);
-        osc.stop(t + 1.3);
+        voices.forEach(voice => {
+            // Stereo Panner
+            const panner = ctx.createStereoPanner();
+            panner.pan.value = voice.pan;
+            panner.connect(saturator); // Send to saturator
+
+            // Create Partials for this voice
+            PARTIALS.forEach((ratio, i) => {
+                // Apply Detune: f * 2^(cents/1200)
+                const detuneMult = Math.pow(2, voice.detune / 1200);
+                const freq = fundamental * ratio * detuneMult;
+                
+                if (freq > ctx.sampleRate / 2) return; 
+
+                const bandpass = ctx.createBiquadFilter();
+                bandpass.type = "bandpass";
+                bandpass.frequency.value = freq;
+                // Q = Freq * Decay / 2 (Approx)
+                bandpass.Q.value = (freq * DECAYS[i]) / 2; 
+
+                const partialGain = ctx.createGain();
+                // Lower gains slightly because we have 2 voices now
+                partialGain.gain.value = (GAINS[i] * MAKEUP_GAIN) * 0.6; 
+
+                // Graph: Mallet -> Bandpass -> Gain -> Panner
+                malletGain.connect(bandpass);
+                bandpass.connect(partialGain);
+                partialGain.connect(panner);
+            });
+        });
+
+        source.start(t);
+        source.stop(t + 4.0); // Allow long ring out
     }
 
-    return { init, toggle, playNote, setVolume };
-})();
-
-/**
- * MIDI ENGINE
- */
-const MidiEngine = (() => {
-    let access = null;
-    let selectedOutput = null;
-    let selectedOutputId = "";
-
-    async function init() {
-        if(!navigator.requestMIDIAccess) return;
-        try {
-            access = await navigator.requestMIDIAccess();
-            access.onstatechange = scan;
-            scan();
-        } catch(e) { console.log("MIDI Fail"); }
-    }
-
-    function scan() {
-        const sel = document.getElementById('midi-select');
-        sel.innerHTML = '<option value="">MIDI...</option>';
-        if(!access) return;
-        const currentId = selectedOutputId || sel.value;
-        let matched = false;
-        const iter = access.outputs.values();
-        for(let o = iter.next(); !o.done; o = iter.next()) {
-            const opt = document.createElement('option');
-            opt.value = o.value.id;
-            opt.innerText = o.value.name;
-            if(currentId && o.value.id === currentId) {
-                opt.selected = true;
-                selectedOutput = o.value;
-                selectedOutputId = currentId;
-                matched = true;
-            }
-            sel.appendChild(opt);
-        }
-        if(!matched) {
-            selectedOutput = null;
-            selectedOutputId = "";
-        }
-    }
-
-    function selectOutput(id) {
-        if(!access) return;
-        selectedOutputId = id;
-        selectedOutput = null;
-        const iter = access.outputs.values();
-        for(let o = iter.next(); !o.done; o = iter.next()) {
-            if(o.value.id === id) selectedOutput = o.value;
-        }
-    }
-
-    function sendNote(note, velocity) {
-        if(!selectedOutput) return;
-        const notes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
-        const oct = parseInt(note.slice(-1));
-        const key = note.slice(0, -1);
-        const idx = notes.indexOf(key);
-        const midiNum = (oct + 1)*12 + idx;
-        const vel = Math.floor(velocity * 127);
-        try {
-            selectedOutput.send([0x90, midiNum, vel]);
-            setTimeout(() => selectedOutput.send([0x80, midiNum, 0]), 100);
-        } catch(e){}
-    }
-
-    return { init, selectOutput, sendNote };
+    return { init, toggle, playNote };
 })();
 
 /**
