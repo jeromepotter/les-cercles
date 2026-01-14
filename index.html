@@ -523,7 +523,7 @@
             <h2>Trigger Settings</h2>
             <div class="control-row">
                 <label>Transpose</label>
-                <input type="number" id="t-shift" min="-7" max="7" step="1" value="0">
+                <input type="number" id="t-shift" min="-14" max="14" step="1" value="0">
             </div>
             <div class="btn-group">
                 <button class="btn-full btn-danger" onclick="deleteTrigger()">DELETE</button>
@@ -1224,8 +1224,12 @@ function clampShift(value) {
     return Math.max(-7, Math.min(7, value));
 }
 
+function clampEffectiveShift(value) {
+    return Math.max(-14, Math.min(14, value));
+}
+
 function getEffectiveTriggerShift(shift) {
-    return clampShift(shift + STATE.gateTranspose);
+    return clampEffectiveShift(shift + STATE.gateTranspose);
 }
 
 function playOrbNote(orb) {
@@ -1357,21 +1361,23 @@ function deleteTrigger() {
 
 document.getElementById('t-shift').onchange = (e) => {
     let val = parseInt(e.target.value);
-    if(val > 7) val = 7;
-    if(val < -7) val = -7;
+    if (Number.isNaN(val)) val = 0;
+    val = clampEffectiveShift(val);
     e.target.value = val;
 
     const t = STATE.triggers.find(x => x.id === STATE.editingTriggerId);
-    if(t) {
+    if (t) {
         pushUndoState();
         t.shift = clampShift(val - STATE.gateTranspose);
+        e.target.value = getEffectiveTriggerShift(t.shift);
     }
 };
 
 document.getElementById('t-shift').oninput = (e) => {
     let val = parseInt(e.target.value);
-    if(val > 7) e.target.value = 7;
-    if(val < -7) e.target.value = -7;
+    if (Number.isNaN(val)) return;
+    val = clampEffectiveShift(val);
+    e.target.value = val;
 };
 
 function clearAll() {
