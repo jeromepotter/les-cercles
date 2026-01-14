@@ -116,10 +116,20 @@
             left: 30px;
             right: 30px;
             display: flex;
-            justify-content: space-between;
-            align-items: flex-end;
+            flex-direction: column;
+            gap: 12px;
+            align-items: center;
             pointer-events: none; 
             z-index: 20;
+        }
+
+        .controls-row {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            gap: 20px;
+            pointer-events: none;
         }
 
         .control-group {
@@ -167,23 +177,8 @@
         .btn-active { color: var(--accent-orange); opacity: 1; border-bottom: 2px solid var(--accent-orange); }
         .btn-text:disabled { opacity: 0.3; cursor: not-allowed; }
 
-        .btn-circle.add-planet {
-            width: 52px;
-            height: 52px;
-            font-size: 2.1em;
-            font-weight: 400;
-            background: var(--panel-bg);
-            border: 1px solid rgba(0,0,0,0.2);
-            box-shadow: var(--shadow);
-            opacity: 0.95;
-        }
-
         /* PLANET LIST */
         #planet-list-wrap {
-            position: absolute;
-            bottom: 100px; 
-            left: 50%;
-            transform: translateX(-50%);
             display: flex;
             gap: 10px;
             align-items: center;
@@ -198,6 +193,23 @@
             z-index: 15;
         }
 
+        #planet-list-wrap .planet-chip-btn {
+            width: var(--chip-size, 16px);
+            height: var(--chip-size, 16px);
+            border-radius: 50%;
+            border: 1px solid rgba(0,0,0,0.2);
+            background: var(--panel-bg);
+            color: var(--ink-color);
+            font-size: 0.9em;
+            line-height: 1;
+            padding: 0;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: var(--shadow);
+        }
+
         #planet-list {
             display: flex;
             gap: 8px;
@@ -207,8 +219,8 @@
         }
 
         .planet-chip {
-            width: 12px;
-            height: 12px;
+            width: var(--chip-size, 16px);
+            height: var(--chip-size, 16px);
             border-radius: 50%;
             cursor: pointer;
             border: 1px solid rgba(0,0,0,0.1);
@@ -354,8 +366,15 @@
                 border: 1px solid rgba(0,0,0,0.1);
             }
             
-            #planet-list-wrap {
-                bottom: 140px; 
+            #controls-bar {
+                bottom: 15px;
+                left: 10px;
+                right: 10px;
+            }
+
+            .controls-row {
+                flex-direction: column;
+                gap: 10px;
             }
             
             .modal { width: 85vw; }
@@ -387,40 +406,43 @@
 
         <canvas id="mainCanvas"></canvas>
         
-        <div id="planet-list-wrap">
-            <button class="btn-circle add-planet" onclick="addPlanet()">+</button>
-            <div id="planet-list"></div>
-        </div>
-
         <div id="controls-bar">
-            <div class="control-group">
-                <button id="btn-play" class="btn-text" onclick="togglePlay()">PLAY</button>
-                <button id="btn-undo" class="btn-text" onclick="undoLastMove()" disabled>UNDO</button>
-                <button class="btn-text" onclick="clearAll()">CLEAR</button>
-                <button class="btn-text" onclick="syncRPMs()">SYNC</button>
-                <button class="btn-text" onclick="evenSpacePlanets()">EVEN</button>
-                <button class="btn-text" onclick="toggleSlingshot()">ORB</button>
+            <div class="controls-row">
+                <div class="control-group">
+                    <button id="btn-play" class="btn-text" onclick="togglePlay()">PLAY</button>
+                    <button id="btn-undo" class="btn-text" onclick="undoLastMove()" disabled>UNDO</button>
+                    <button class="btn-text" onclick="clearAll()">CLEAR</button>
+                    <button class="btn-text" onclick="syncRPMs()">SYNC</button>
+                    <button class="btn-text" onclick="evenSpacePlanets()">EVEN</button>
+                    <button class="btn-text" onclick="toggleSlingshot()">ORB</button>
+                </div>
+
+                <div class="control-group">
+                    <button id="btn-dir" class="btn-text" onclick="toggleDirection()">CCW</button>
+
+                    <div class="macro-slider-container">
+                        <label>GATES: <span id="gate-label">1</span></label>
+                        <input id="gate-range" type="range" min="1" max="32" step="1" value="1" oninput="updateGates(this.value)">
+                    </div>
+
+                    <div class="macro-slider-container">
+                        <label>TRANSPOSE: <span id="transpose-label">0</span></label>
+                        <input id="transpose-range" type="range" min="-7" max="7" step="1" value="0" oninput="updateGlobalTranspose(this.value)">
+                    </div>
+
+                    <button class="btn-text" onclick="randomizeGateTranspose()">RND</button>
+
+                    <div class="macro-slider-container">
+                        <label>SPEED</label>
+                        <input id="speed-range" type="range" min="0.1" max="3.0" step="0.1" value="1.0" oninput="updateGlobalSpeed(this.value)">
+                    </div>
+                </div>
             </div>
 
-            <div class="control-group">
-                <button id="btn-dir" class="btn-text" onclick="toggleDirection()">CCW</button>
-
-                <div class="macro-slider-container">
-                    <label>GATES: <span id="gate-label">1</span></label>
-                    <input id="gate-range" type="range" min="1" max="32" step="1" value="1" oninput="updateGates(this.value)">
-                </div>
-
-                <div class="macro-slider-container">
-                    <label>TRANSPOSE</label>
-                    <input id="transpose-range" type="range" min="-7" max="7" step="1" value="0" oninput="updateGlobalTranspose(this.value)">
-                </div>
-
-                <button class="btn-text" onclick="randomizeGateTranspose()">RND</button>
-
-                <div class="macro-slider-container">
-                    <label>SPEED</label>
-                    <input id="speed-range" type="range" min="0.1" max="3.0" step="0.1" value="1.0" oninput="updateGlobalSpeed(this.value)">
-                </div>
+            <div id="planet-list-wrap">
+                <button class="planet-chip-btn" onclick="addPlanet()">+</button>
+                <div id="planet-list"></div>
+                <button class="planet-chip-btn" onclick="deleteLastPlanet()">-</button>
             </div>
         </div>
 
@@ -432,6 +454,10 @@
             <div class="control-row">
                 <label>RPM</label>
                 <input type="number" id="p-rpm" step="0.1" min="0.1" max="500">
+            </div>
+            <div class="control-row">
+                <label>RPM Slider</label>
+                <input type="range" id="p-rpm-range" min="0.1" max="500" step="0.01">
             </div>
             <div class="control-row">
                 <label>Velocity</label>
@@ -597,6 +623,8 @@ function applyUndoSnapshot(snapshot) {
     if (speedRange) speedRange.value = STATE.globalSpeed;
     const transposeRange = document.getElementById('transpose-range');
     if (transposeRange) transposeRange.value = STATE.gateTranspose;
+    const transposeLabel = document.getElementById('transpose-label');
+    if (transposeLabel) transposeLabel.innerText = STATE.gateTranspose;
     syncGateUI();
     updatePlayButton();
     updatePlanetList();
@@ -1042,6 +1070,8 @@ function handleFileLoad(input) {
             if (speedRange) speedRange.value = STATE.globalSpeed;
             const transposeRange = document.getElementById('transpose-range');
             if (transposeRange) transposeRange.value = STATE.gateTranspose;
+            const transposeLabel = document.getElementById('transpose-label');
+            if (transposeLabel) transposeLabel.innerText = STATE.gateTranspose;
             syncGateUI();
 
             updatePlanetList();
@@ -1065,6 +1095,7 @@ function updateGlobalSpeed(val) {
         if (p) {
              const effectiveRPM = p.rpm * STATE.globalSpeed;
              document.getElementById('p-rpm').value = effectiveRPM.toFixed(2);
+             document.getElementById('p-rpm-range').value = effectiveRPM.toFixed(2);
         }
     }
 }
@@ -1082,6 +1113,12 @@ function updateGlobalTranspose(val) {
     STATE.gateTranspose = clampShift(parseInt(val, 10) || 0);
     const transposeRange = document.getElementById('transpose-range');
     if (transposeRange) transposeRange.value = STATE.gateTranspose;
+    const transposeLabel = document.getElementById('transpose-label');
+    if (transposeLabel) transposeLabel.innerText = STATE.gateTranspose;
+    if (STATE.editingTriggerId) {
+        const t = STATE.triggers.find(x => x.id === STATE.editingTriggerId);
+        if (t) document.getElementById('t-shift').value = getEffectiveTriggerShift(t.shift);
+    }
 }
 
 function addPlanet() {
@@ -1103,6 +1140,17 @@ function addPlanet() {
     openPlanet(newP); 
 }
 
+function deleteLastPlanet() {
+    if (STATE.planets.length === 0) return;
+    pushUndoState();
+    const removed = STATE.planets.pop();
+    if (STATE.editingId === removed.id) {
+        closePanel('planet-panel');
+        STATE.editingId = null;
+    }
+    updatePlanetList();
+}
+
 function openPlanet(p) {
     closePanel('trigger-panel');
     STATE.editingId = p.id;
@@ -1122,6 +1170,7 @@ function openPlanet(p) {
 
     const effectiveRPM = p.rpm * STATE.globalSpeed;
     document.getElementById('p-rpm').value = effectiveRPM.toFixed(2);
+    document.getElementById('p-rpm-range').value = effectiveRPM.toFixed(2);
     document.getElementById('p-vol').value = p.velocity;
     panel.style.display = 'block';
 }
@@ -1137,7 +1186,7 @@ function deletePlanet() {
 function openTrigger(t) {
     closePanel('planet-panel');
     STATE.editingTriggerId = t.id;
-    document.getElementById('t-shift').value = t.shift;
+    document.getElementById('t-shift').value = getEffectiveTriggerShift(t.shift);
     document.getElementById('trigger-panel').style.display = 'block';
 }
 
@@ -1157,7 +1206,7 @@ document.getElementById('t-shift').onchange = (e) => {
     const t = STATE.triggers.find(x => x.id === STATE.editingTriggerId);
     if(t) {
         pushUndoState();
-        t.shift = val;
+        t.shift = clampShift(val - STATE.gateTranspose);
     }
 };
 
@@ -1236,14 +1285,25 @@ document.getElementById('p-note').onchange = (e) => {
     }
 };
 
-document.getElementById('p-rpm').oninput = (e) => {
+function updatePlanetRPM(inputVal) {
     const p = STATE.planets.find(x => x.id === STATE.editingId);
-    if(p) {
-        const inputVal = parseFloat(e.target.value);
-        if (!isNaN(inputVal) && inputVal > 0) {
-            p.rpm = inputVal / STATE.globalSpeed;
-        }
+    if (p && !isNaN(inputVal) && inputVal > 0) {
+        p.rpm = inputVal / STATE.globalSpeed;
     }
+}
+
+document.getElementById('p-rpm').oninput = (e) => {
+    const inputVal = parseFloat(e.target.value);
+    updatePlanetRPM(inputVal);
+    const range = document.getElementById('p-rpm-range');
+    if (range && !isNaN(inputVal)) range.value = inputVal;
+};
+
+document.getElementById('p-rpm-range').oninput = (e) => {
+    const inputVal = parseFloat(e.target.value);
+    updatePlanetRPM(inputVal);
+    const numberInput = document.getElementById('p-rpm');
+    if (numberInput && !isNaN(inputVal)) numberInput.value = inputVal.toFixed(2);
 };
 
 document.getElementById('p-vol').oninput = (e) => {
@@ -1616,20 +1676,21 @@ function loop(time) {
         const ty = centerY + Math.sin(t) * (STATE.orbitRadius + 15);
         const txIn = centerX + Math.cos(t) * (STATE.orbitRadius - 15);
         const tyIn = centerY + Math.sin(t) * (STATE.orbitRadius - 15);
+        const effectiveShift = getEffectiveTriggerShift(tObj.shift);
         
         ctx.beginPath();
         ctx.moveTo(txIn, tyIn);
         ctx.lineTo(tx, ty);
         ctx.lineWidth = 6;
 
-        if (tObj.shift === 0) {
+        if (effectiveShift === 0) {
              ctx.strokeStyle = '#f04e23'; 
              ctx.lineWidth = 4;
-        } else if (tObj.shift > 0) {
-             const lightenAmount = (tObj.shift - 1) * 15;
+        } else if (effectiveShift > 0) {
+             const lightenAmount = (effectiveShift - 1) * 15;
              ctx.strokeStyle = adjustColor('#cf6325', lightenAmount);
         } else {
-             const darkenAmount = (tObj.shift + 1) * 15;
+             const darkenAmount = (effectiveShift + 1) * 15;
              ctx.strokeStyle = adjustColor('#364a59', darkenAmount);
         }
         
