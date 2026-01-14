@@ -164,6 +164,16 @@
             text-transform: uppercase;
         }
 
+        .gate-settings {
+            border: 1px solid rgba(0,0,0,0.2);
+            border-radius: 0;
+            padding: 8px 10px;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            pointer-events: auto;
+        }
+
         /* BUTTONS */
         .btn-circle {
             width: 44px;
@@ -460,6 +470,12 @@
             <div class="controls-row">
                 <div class="control-group">
                     <button id="btn-play" class="btn-text" onclick="togglePlay()">PLAY</button>
+
+                    <div class="macro-slider-container">
+                        <label>SPEED</label>
+                        <input id="speed-range" type="range" min="0.1" max="3.0" step="0.1" value="1.0" oninput="updateGlobalSpeed(this.value)">
+                    </div>
+
                     <button id="btn-undo" class="btn-text" onclick="undoLastMove()" disabled>UNDO</button>
                     <button class="btn-text" onclick="clearAll()">CLEAR</button>
                     <button class="btn-text" onclick="syncRPMs()">SYNC</button>
@@ -470,21 +486,19 @@
                 <div class="control-group">
                     <button id="btn-dir" class="btn-text" onclick="toggleDirection()">CCW</button>
 
-                    <div class="macro-slider-container">
-                        <label>GATES: <span id="gate-label">1</span></label>
-                        <input id="gate-range" type="range" min="1" max="32" step="1" value="1" oninput="updateGates(this.value)">
-                    </div>
+                    <div class="gate-settings">
+                        <div class="macro-slider-container">
+                            <label>GATES: <span id="gate-label">1</span></label>
+                            <input id="gate-range" type="range" min="1" max="32" step="1" value="1" oninput="updateGates(this.value)">
+                        </div>
 
-                    <div class="macro-slider-container">
-                        <label>TRANSPOSE: <span id="transpose-label">0</span></label>
-                        <input id="transpose-range" type="range" min="-7" max="7" step="1" value="0" oninput="updateGlobalTranspose(this.value)">
-                    </div>
+                        <div class="macro-slider-container">
+                            <label>TRANSPOSE: <span id="transpose-label">0</span></label>
+                            <input id="transpose-range" type="range" min="-7" max="7" step="1" value="0" oninput="updateGlobalTranspose(this.value)">
+                        </div>
 
-                    <button class="btn-text" onclick="randomizeGateTranspose()">RND</button>
-
-                    <div class="macro-slider-container">
-                        <label>SPEED</label>
-                        <input id="speed-range" type="range" min="0.1" max="3.0" step="0.1" value="1.0" oninput="updateGlobalSpeed(this.value)">
+                        <button class="btn-text" onclick="randomizeGateTranspose()">RND TRNS</button>
+                        <button class="btn-text" onclick="randomizeGateSpacing()">RND SPC</button>
                     </div>
                 </div>
             </div>
@@ -522,8 +536,8 @@
         <div id="trigger-panel" class="modal">
             <h2>Trigger Settings</h2>
             <div class="control-row">
-                <label>Transpose</label>
-                <input type="number" id="t-shift" min="-14" max="14" step="1" value="0">
+                <label>Transpose: <span id="t-shift-label">0</span></label>
+                <input type="range" id="t-shift-range" min="-7" max="7" step="1" value="0">
             </div>
             <div class="btn-group">
                 <button class="btn-full btn-danger" onclick="deleteTrigger()">DELETE</button>
@@ -1256,7 +1270,12 @@ function updateGlobalTranspose(val) {
     if (transposeLabel) transposeLabel.innerText = STATE.gateTranspose;
     if (STATE.editingTriggerId) {
         const t = STATE.triggers.find(x => x.id === STATE.editingTriggerId);
-        if (t) document.getElementById('t-shift').value = getEffectiveTriggerShift(t.shift);
+        if (t) {
+            const shiftRange = document.getElementById('t-shift-range');
+            const shiftLabel = document.getElementById('t-shift-label');
+            if (shiftRange) shiftRange.value = clampShift(t.shift);
+            if (shiftLabel) shiftLabel.innerText = getEffectiveTriggerShift(t.shift);
+        }
     }
 }
 
@@ -1327,7 +1346,8 @@ function openTrigger(t) {
     closePanel('orb-panel');
     closePanel('planet-panel');
     STATE.editingTriggerId = t.id;
-    document.getElementById('t-shift').value = getEffectiveTriggerShift(t.shift);
+    document.getElementById('t-shift-range').value = clampShift(t.shift);
+    document.getElementById('t-shift-label').innerText = getEffectiveTriggerShift(t.shift);
     document.getElementById('trigger-panel').style.display = 'block';
 }
 
@@ -1359,25 +1379,14 @@ function deleteTrigger() {
     closePanel('trigger-panel');
 }
 
-document.getElementById('t-shift').onchange = (e) => {
-    let val = parseInt(e.target.value);
-    if (Number.isNaN(val)) val = 0;
-    val = clampEffectiveShift(val);
-    e.target.value = val;
-
+document.getElementById('t-shift-range').oninput = (e) => {
+    const val = clampShift(parseInt(e.target.value, 10) || 0);
     const t = STATE.triggers.find(x => x.id === STATE.editingTriggerId);
     if (t) {
         pushUndoState();
-        t.shift = clampShift(val - STATE.gateTranspose);
-        e.target.value = getEffectiveTriggerShift(t.shift);
+        t.shift = val;
+        document.getElementById('t-shift-label').innerText = getEffectiveTriggerShift(t.shift);
     }
-};
-
-document.getElementById('t-shift').oninput = (e) => {
-    let val = parseInt(e.target.value);
-    if (Number.isNaN(val)) return;
-    val = clampEffectiveShift(val);
-    e.target.value = val;
 };
 
 function clearAll() {
@@ -1438,6 +1447,22 @@ function randomizeGateTranspose() {
     pushUndoState();
     STATE.triggers.forEach(t => {
         t.shift = Math.floor(Math.random() * 15) - 7;
+    });
+    if (STATE.editingTriggerId) {
+        const t = STATE.triggers.find(x => x.id === STATE.editingTriggerId);
+        if (t) {
+            const shiftRange = document.getElementById('t-shift-range');
+            const shiftLabel = document.getElementById('t-shift-label');
+            if (shiftRange) shiftRange.value = clampShift(t.shift);
+            if (shiftLabel) shiftLabel.innerText = getEffectiveTriggerShift(t.shift);
+        }
+    }
+}
+
+function randomizeGateSpacing() {
+    pushUndoState();
+    STATE.triggers.forEach(t => {
+        t.angle = Math.random() * Math.PI * 2;
     });
 }
 
