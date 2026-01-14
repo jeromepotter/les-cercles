@@ -441,8 +441,8 @@
             </div>
 
             <div class="hud-item volume-control">
-                <label for="volume-range">VOL <span id="volume-label">50%</span></label>
-                <input id="volume-range" type="range" min="0" max="2" step="0.01" value="0.5" oninput="updateMasterVolume(this.value)">
+                <label for="volume-range">VOL</label>
+                <input id="volume-range" type="range" min="0" max="2" step="0.01" value="1" oninput="updateMasterVolume(this.value)">
             </div>
         </div>
 
@@ -809,6 +809,7 @@ const AudioEngine = (() => {
     function setVolume(value) {
         if(!ctx || !masterGain) return;
         const target = STATE.audioEnabled ? value : 0;
+        masterGain.gain.cancelScheduledValues(ctx.currentTime);
         masterGain.gain.setTargetAtTime(target, ctx.currentTime, 0.05);
     }
 
@@ -964,10 +965,8 @@ resize();
 function toggleAudio() { AudioEngine.toggle(); }
 
 function updateMasterVolume(value) {
-    const volume = parseFloat(value);
+    const volume = parseFloat(value) * 0.5;
     STATE.masterVolume = volume;
-    const label = document.getElementById('volume-label');
-    if (label) label.innerText = `${Math.round(volume * 100)}%`;
     AudioEngine.setVolume(volume);
 }
 
