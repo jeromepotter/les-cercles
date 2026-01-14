@@ -615,7 +615,13 @@ const STATE = {
     projectiles: [], 
     slingshot: { active: false, isDragging: false, pullX: 0, pullY: 0 },
     centerColor: 'var(--ink-color)',
-    orbPanelPrevSlingshot: null
+    orbPanelPrevSlingshot: null,
+    orbDefaults: {
+        triggerMode: 'notes',
+        pitch: 'C4',
+        collision: false,
+        velocity: 0.7
+    }
 };
 
 const UNDO_LIMIT = 20;
@@ -1073,6 +1079,12 @@ function finishCustomScale() {
 /* SLINGSHOT LOGIC */
 function toggleSlingshot() {
     STATE.slingshot.active = !STATE.slingshot.active;
+    if (STATE.slingshot.active) {
+        openOrbPanel(null);
+    } else if (document.getElementById('orb-panel').style.display === 'block') {
+        STATE.orbPanelPrevSlingshot = null;
+        closePanel('orb-panel');
+    }
 }
 
 function savePattern() {
@@ -1282,23 +1294,30 @@ function updateOrbPitchVisibility(mode) {
     pitchRow.style.display = mode === 'notes' ? 'none' : 'flex';
 }
 
-function openOrb(orb) {
+function getActiveOrbSettings() {
+    if (!STATE.editingOrbId) return STATE.orbDefaults;
+    const orb = STATE.projectiles.find(x => x.id === STATE.editingOrbId);
+    return orb || STATE.orbDefaults;
+}
+
+function openOrbPanel(orb) {
     closePanel('planet-panel');
     closePanel('trigger-panel');
-    STATE.editingOrbId = orb.id;
+    STATE.editingOrbId = orb ? orb.id : null;
     const panel = document.getElementById('orb-panel');
     const triggerSel = document.getElementById('o-trigger');
     const collisionToggle = document.getElementById('o-collision');
 
-    if (!orb.triggerMode) orb.triggerMode = 'notes';
-    if (!orb.pitch) {
-        orb.pitch = MusicTheory.getRandomNoteInRange(STATE.root, STATE.scale, 3, 5);
+    const target = orb || STATE.orbDefaults;
+    if (!target.triggerMode) target.triggerMode = 'notes';
+    if (!target.pitch) {
+        target.pitch = MusicTheory.getRandomNoteInRange(STATE.root, STATE.scale, 3, 5);
     }
 
-    triggerSel.value = orb.triggerMode;
-    populateOrbPitchOptions(orb.pitch);
-    updateOrbPitchVisibility(orb.triggerMode);
-    collisionToggle.checked = !!orb.collision;
+    triggerSel.value = target.triggerMode;
+    populateOrbPitchOptions(target.pitch);
+    updateOrbPitchVisibility(target.triggerMode);
+    collisionToggle.checked = !!target.collision;
 
     if (STATE.orbPanelPrevSlingshot === null) {
         STATE.orbPanelPrevSlingshot = STATE.slingshot.active;
@@ -1403,21 +1422,18 @@ document.getElementById('p-note').onchange = (e) => {
 };
 
 document.getElementById('o-trigger').onchange = (e) => {
-    const orb = STATE.projectiles.find(x => x.id === STATE.editingOrbId);
-    if (!orb) return;
+    const orb = getActiveOrbSettings();
     orb.triggerMode = e.target.value;
     updateOrbPitchVisibility(orb.triggerMode);
 };
 
 document.getElementById('o-pitch').onchange = (e) => {
-    const orb = STATE.projectiles.find(x => x.id === STATE.editingOrbId);
-    if (!orb) return;
+    const orb = getActiveOrbSettings();
     orb.pitch = e.target.value;
 };
 
 document.getElementById('o-collision').onchange = (e) => {
-    const orb = STATE.projectiles.find(x => x.id === STATE.editingOrbId);
-    if (!orb) return;
+    const orb = getActiveOrbSettings();
     orb.collision = e.target.checked;
 };
 
@@ -1678,11 +1694,11 @@ function handleEnd() {
                 vx: dx * power,
                 vy: dy * power,
                 color: STATE.centerColor,
-                triggerMode: 'notes',
-                pitch: MusicTheory.getRandomNoteInRange(STATE.root, STATE.scale, 3, 5),
-                collision: false,
+                triggerMode: STATE.orbDefaults.triggerMode,
+                pitch: STATE.orbDefaults.pitch,
+                collision: STATE.orbDefaults.collision,
                 cooldown: 0,
-                velocity: 0.7
+                velocity: STATE.orbDefaults.velocity
             });
         }
     }
@@ -1692,7 +1708,7 @@ function handleEnd() {
         if (duration < 300) { 
             if (dragTarget.type === 'trigger') openTrigger(dragTarget.obj);
             if (dragTarget.type === 'planet') openPlanet(dragTarget.obj);
-            if (dragTarget.type === 'orb') openOrb(dragTarget.obj);
+            if (dragTarget.type === 'orb') openOrbPanel(dragTarget.obj);
         }
     }
     isDragging = false;
