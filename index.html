@@ -775,7 +775,11 @@ const AudioEngine = (() => {
     const DECAYS = [1.5, 1.2, 0.8, 0.6, 0.4];
     
     // Gains for each partial
-    const GAINS = [1.0, 0.6, 0.4, 0.3, 0.2];
+const GAINS = [1.0, 0.6, 0.4, 0.3, 0.2];
+
+    // *** THE FIX: MAKEUP GAIN ***
+    // We multiply the output by 40 to recover the volume lost by filtering
+    const MAKEUP_GAIN = 40.0;    
 
     function init() {
         if(!ctx) {
