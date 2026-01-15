@@ -212,6 +212,18 @@
         .btn-active { color: var(--accent-orange); opacity: 1; border-bottom: 2px solid var(--accent-orange); }
         .btn-text:disabled { opacity: 0.3; cursor: not-allowed; }
 
+        .btn-small {
+            font-size: 0.75em;
+            padding: 6px 10px;
+        }
+
+        .control-buttons-row {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            margin-top: 6px;
+        }
+
         details.side-panel {
             pointer-events: auto;
             width: 260px;
@@ -636,6 +648,9 @@
             <details class="side-panel" id="notes-panel">
                 <summary>NOTES</summary>
                 <div class="side-panel-content">
+                    <button id="btn-dir" class="btn-text" onclick="toggleDirection()">CCW</button>
+                    <button class="btn-text" onclick="syncRPMs()">SYNC</button>
+                    <button class="btn-text" onclick="evenSpacePlanets()">EVEN</button>
                     <button id="btn-play" class="btn-text btn-fixed" onclick="togglePlay()">PLAY</button>
 
                     <div class="macro-slider-container">
@@ -646,21 +661,30 @@
                         </div>
                     </div>
 
-                    <button id="btn-dir" class="btn-text" onclick="toggleDirection()">CCW</button>
-                    <button class="btn-text" onclick="syncRPMs()">SYNC</button>
-                    <button class="btn-text" onclick="evenSpacePlanets()">EVEN</button>
-
                 </div>
             </details>
 
             <details class="side-panel" id="gates-panel">
                 <summary>GATES</summary>
                 <div class="side-panel-content">
+                    <button id="btn-gate-play" class="btn-text btn-fixed" onclick="toggleGateSpin()">PLAY</button>
+
                     <div class="macro-slider-container">
                         <div class="slider-pill">
                             <span class="slider-pill__label">Gates</span>
                             <span class="slider-pill__value" id="gate-label">1</span>
                             <input id="gate-range" type="range" min="1" max="32" step="1" value="1" data-value-target="gate-label" data-format="int" oninput="updateGates(this.value); updateSliderValue(this)">
+                        </div>
+                    </div>
+
+                    <button class="btn-text" onclick="randomizeGateTranspose()">RND TRNS</button>
+                    <button class="btn-text" onclick="randomizeGateSpacing()">RND SPC</button>
+
+                    <div class="macro-slider-container">
+                        <div class="slider-pill">
+                            <span class="slider-pill__label">Gate Speed</span>
+                            <span class="slider-pill__value" id="gate-speed-label">10 RPM</span>
+                            <input id="gate-speed-range" type="range" min="1" max="60" step="1" value="10" data-value-target="gate-speed-label" data-format="rpm" oninput="updateGateSpinSpeed(this.value); updateSliderValue(this)">
                         </div>
                     </div>
 
@@ -670,17 +694,9 @@
                             <span class="slider-pill__value" id="transpose-label">0</span>
                             <input id="transpose-range" type="range" min="-7" max="7" step="1" value="0" data-value-target="transpose-label" data-format="signed" oninput="updateGlobalTranspose(this.value); updateSliderValue(this)">
                         </div>
-                    </div>
-
-                    <button class="btn-text" onclick="randomizeGateTranspose()">RND TRNS</button>
-                    <button class="btn-text" onclick="randomizeGateSpacing()">RND SPC</button>
-                    <button id="btn-gate-play" class="btn-text btn-fixed" onclick="toggleGateSpin()">PLAY</button>
-
-                    <div class="macro-slider-container">
-                        <div class="slider-pill">
-                            <span class="slider-pill__label">Gate Speed</span>
-                            <span class="slider-pill__value" id="gate-speed-label">10 RPM</span>
-                            <input id="gate-speed-range" type="range" min="1" max="60" step="1" value="10" data-value-target="gate-speed-label" data-format="rpm" oninput="updateGateSpinSpeed(this.value); updateSliderValue(this)">
+                        <div class="control-buttons-row">
+                            <button class="btn-text btn-small" onclick="adjustGlobalTranspose(-1)">-1</button>
+                            <button class="btn-text btn-small" onclick="adjustGlobalTranspose(1)">+1</button>
                         </div>
                     </div>
 
@@ -1654,6 +1670,16 @@ function updateGlobalTranspose(val) {
             }
             if (shiftLabel) shiftLabel.innerText = getEffectiveTriggerShift(t.shift);
         }
+    }
+}
+
+function adjustGlobalTranspose(delta) {
+    const next = clampShift((STATE.gateTranspose || 0) + delta);
+    updateGlobalTranspose(next);
+    const transposeRange = document.getElementById('transpose-range');
+    if (transposeRange) {
+        transposeRange.value = next;
+        updateSliderValue(transposeRange);
     }
 }
 
