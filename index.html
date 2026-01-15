@@ -15,8 +15,8 @@
             --panel-bg: #f4f4f2;
             --border: 1px solid #bbb;
             --shadow: 0 2px 5px rgba(0,0,0,0.1);
-            --slider-track: rgba(0,0,0,0.12);
-            --slider-border: rgba(0,0,0,0.08);
+            --slider-pill-bg: rgba(0,0,0,0.12);
+            --slider-pill-border: rgba(0,0,0,0.08);
         }
 
         /* DARK MODE overrides */
@@ -26,8 +26,8 @@
             --panel-bg: #2a2a2a;
             --border: 1px solid #444;
             --shadow: 0 4px 10px rgba(0,0,0,0.4);
-            --slider-track: rgba(255,255,255,0.12);
-            --slider-border: rgba(255,255,255,0.12);
+            --slider-pill-bg: rgba(255,255,255,0.12);
+            --slider-pill-border: rgba(255,255,255,0.12);
         }
 
         @font-face {
@@ -124,19 +124,6 @@
             gap: 6px;
         }
 
-        .volume-control label {
-            font-size: inherit;
-            font-weight: inherit;
-            font-family: inherit;
-            letter-spacing: inherit;
-            white-space: nowrap;
-        }
-
-        .volume-control input[type=range] {
-            width: 90px;
-            --slider-height: 30px;
-        }
-
         /* CONTROLS BAR */
         #controls-bar {
             position: absolute;
@@ -216,6 +203,10 @@
             letter-spacing: 1px;
             padding: 8px 10px; 
             white-space: nowrap;
+        }
+        .btn-fixed {
+            min-width: 64px;
+            text-align: center;
         }
         .btn-text:active { background: rgba(0,0,0,0.05); opacity: 1; }
         .btn-active { color: var(--accent-orange); opacity: 1; border-bottom: 2px solid var(--accent-orange); }
@@ -302,12 +293,15 @@
         input[type=range] {
             -webkit-appearance: none;
             appearance: none;
-            width: 140px;
-            --slider-height: 36px;
-            height: var(--slider-height);
+            width: 100%;
+            height: 100%;
             background: transparent;
             outline: none;
             cursor: pointer;
+            position: absolute;
+            inset: 0;
+            margin: 0;
+            z-index: 2;
         }
         input[type=range]::-webkit-slider-thumb {
             -webkit-appearance: none;
@@ -315,20 +309,15 @@
             height: 22px;
             border-radius: 999px;
             background: var(--ink-color);
-            margin-top: calc((var(--slider-height) - 22px) / 2);
-            box-shadow: 0 0 0 6px rgba(255,255,255,0.25);
+            box-shadow: 0 0 0 6px rgba(255,255,255,0.2);
         }
         input[type=range]::-webkit-slider-runnable-track {
-            height: var(--slider-height);
-            background: var(--slider-track);
-            border-radius: 999px;
-            border: 1px solid var(--slider-border);
+            height: 100%;
+            background: transparent;
         }
         input[type=range]::-moz-range-track {
-            height: var(--slider-height);
-            background: var(--slider-track);
-            border-radius: 999px;
-            border: 1px solid var(--slider-border);
+            height: 100%;
+            background: transparent;
         }
         input[type=range]::-moz-range-thumb {
             width: 4px;
@@ -337,11 +326,46 @@
             background: var(--ink-color);
             border: none;
         }
+        input[type=range]::-moz-focus-outer { border: 0; }
+
+        .slider-pill {
+            position: relative;
+            width: 190px;
+            height: 40px;
+            border-radius: 999px;
+            background: var(--slider-pill-bg);
+            border: 1px solid var(--slider-pill-border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 16px;
+            box-sizing: border-box;
+            overflow: hidden;
+            font-size: 0.8em;
+            letter-spacing: 0.3px;
+            font-weight: 600;
+        }
+
+        .slider-pill__label,
+        .slider-pill__value {
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        .slider-pill__value {
+            opacity: 0.7;
+        }
+
+        .slider-pill--compact {
+            width: 150px;
+            height: 34px;
+            font-size: 0.7em;
+        }
 
         /* PANELS */
         .modal {
             display: none;
-            position: absolute;
+            position: fixed;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
@@ -352,6 +376,28 @@
             padding: 20px;
             z-index: 100;
             border-radius: 4px;
+        }
+
+        #global-panel {
+            top: 80px;
+            right: 20px;
+            left: auto;
+            transform: none;
+        }
+
+        #modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.12);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease;
+            z-index: 90;
+        }
+
+        #modal-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
         }
 
         .modal h2 {
@@ -442,9 +488,9 @@
                 gap: 8px 6px;
             }
             
-            input[type=range] { width: 110px; --slider-height: 30px; }
+            .slider-pill { width: 160px; height: 34px; font-size: 0.7em; }
+            .slider-pill--compact { width: 130px; height: 30px; }
             .macro-slider-container label { font-size: 0.7em !important; }
-            .volume-control input[type=range] { width: 80px; }
 
             .btn-text {
                 font-size: 0.7em;
@@ -469,6 +515,12 @@
             }
             
             .modal { width: 85vw; }
+            #global-panel {
+                top: 50%;
+                left: 50%;
+                right: auto;
+                transform: translate(-50%, -50%);
+            }
         }
     </style>
 </head>
@@ -497,23 +549,30 @@
                 </div>
 
                 <div class="hud-item volume-control">
-                    <label for="volume-range">VOL</label>
-                    <input id="volume-range" type="range" min="0" max="2" step="0.01" value="1" oninput="updateMasterVolume(this.value)">
+                    <div class="slider-pill slider-pill--compact">
+                        <span class="slider-pill__label">Volume</span>
+                        <span class="slider-pill__value" id="volume-value">100%</span>
+                        <input id="volume-range" type="range" min="0" max="2" step="0.01" value="1" data-value-target="volume-value" data-format="percent" oninput="updateMasterVolume(this.value); updateSliderValue(this)">
+                    </div>
                 </div>
 
-                <button id="btn-play" class="btn-text" onclick="togglePlay()">PLAY</button>
+                <button id="btn-play" class="btn-text btn-fixed" onclick="togglePlay()">PLAY</button>
                 <button class="btn-text" onclick="toggleSlingshot()">ORB</button>
             </div>
         </div>
 
         <canvas id="mainCanvas"></canvas>
+        <div id="modal-overlay" onclick="closePanel('global-panel')"></div>
         
         <div id="controls-bar">
             <div class="controls-row">
                 <div class="control-group">
                     <div class="macro-slider-container">
-                        <label>SPEED</label>
-                        <input id="speed-range" type="range" min="0.1" max="3.0" step="0.1" value="1.0" oninput="updateGlobalSpeed(this.value)">
+                        <div class="slider-pill">
+                            <span class="slider-pill__label">Speed</span>
+                            <span class="slider-pill__value" id="speed-value">1.0x</span>
+                            <input id="speed-range" type="range" min="0.1" max="3.0" step="0.1" value="1.0" data-value-target="speed-value" data-format="speed" oninput="updateGlobalSpeed(this.value); updateSliderValue(this)">
+                        </div>
                     </div>
 
                     <button id="btn-dir" class="btn-text" onclick="toggleDirection()">CCW</button>
@@ -526,22 +585,31 @@
             <div class="controls-row">
                 <div class="control-group gate-settings">
                     <div class="macro-slider-container">
-                        <label>GATES: <span id="gate-label">1</span></label>
-                        <input id="gate-range" type="range" min="1" max="32" step="1" value="1" oninput="updateGates(this.value)">
+                        <div class="slider-pill">
+                            <span class="slider-pill__label">Gates</span>
+                            <span class="slider-pill__value" id="gate-label">1</span>
+                            <input id="gate-range" type="range" min="1" max="32" step="1" value="1" data-value-target="gate-label" data-format="int" oninput="updateGates(this.value); updateSliderValue(this)">
+                        </div>
                     </div>
 
                     <div class="macro-slider-container">
-                        <label>TRANSPOSE: <span id="transpose-label">0</span></label>
-                        <input id="transpose-range" type="range" min="-7" max="7" step="1" value="0" oninput="updateGlobalTranspose(this.value)">
+                        <div class="slider-pill">
+                            <span class="slider-pill__label">Transpose</span>
+                            <span class="slider-pill__value" id="transpose-label">0</span>
+                            <input id="transpose-range" type="range" min="-7" max="7" step="1" value="0" data-value-target="transpose-label" data-format="signed" oninput="updateGlobalTranspose(this.value); updateSliderValue(this)">
+                        </div>
                     </div>
 
                     <button class="btn-text" onclick="randomizeGateTranspose()">RND TRNS</button>
                     <button class="btn-text" onclick="randomizeGateSpacing()">RND SPC</button>
-                    <button id="btn-gate-play" class="btn-text" onclick="toggleGateSpin()">PLAY</button>
+                    <button id="btn-gate-play" class="btn-text btn-fixed" onclick="toggleGateSpin()">PLAY</button>
 
                     <div class="macro-slider-container">
-                        <label>GATE SPEED</label>
-                        <input id="gate-speed-range" type="range" min="1" max="60" step="1" value="10" oninput="updateGateSpinSpeed(this.value)">
+                        <div class="slider-pill">
+                            <span class="slider-pill__label">Gate Speed</span>
+                            <span class="slider-pill__value" id="gate-speed-label">10 RPM</span>
+                            <input id="gate-speed-range" type="range" min="1" max="60" step="1" value="10" data-value-target="gate-speed-label" data-format="rpm" oninput="updateGateSpinSpeed(this.value); updateSliderValue(this)">
+                        </div>
                     </div>
 
                     <button id="btn-gate-dir" class="btn-text" onclick="toggleGateSpinDirection()">CW</button>
@@ -565,12 +633,18 @@
                 <input type="number" id="p-rpm" step="0.1" min="0.1" max="100">
             </div>
             <div class="control-row">
-                <label></label>
-                <input type="range" id="p-rpm-range" min="0.1" max="100" step="0.01">
+                <div class="slider-pill">
+                    <span class="slider-pill__label">RPM</span>
+                    <span class="slider-pill__value" id="p-rpm-value">0.00</span>
+                    <input type="range" id="p-rpm-range" min="0.1" max="100" step="0.01" data-value-target="p-rpm-value" data-format="rpm-fine">
+                </div>
             </div>
             <div class="control-row">
-                <label>Volume</label>
-                <input type="range" id="p-vol" min="0" max="1" step="0.01">
+                <div class="slider-pill">
+                    <span class="slider-pill__label">Volume</span>
+                    <span class="slider-pill__value" id="p-vol-value">70%</span>
+                    <input type="range" id="p-vol" min="0" max="1" step="0.01" data-value-target="p-vol-value" data-format="percent-100">
+                </div>
             </div>
             <div class="btn-group">
                 <button class="btn-full btn-danger" onclick="deletePlanet()">DELETE</button>
@@ -581,8 +655,11 @@
         <div id="trigger-panel" class="modal">
             <h2>Trigger Settings</h2>
             <div class="control-row">
-                <label>Transpose: <span id="t-shift-label">0</span></label>
-                <input type="range" id="t-shift-range" min="-7" max="7" step="1" value="0">
+                <div class="slider-pill">
+                    <span class="slider-pill__label">Transpose</span>
+                    <span class="slider-pill__value" id="t-shift-label">0</span>
+                    <input type="range" id="t-shift-range" min="-7" max="7" step="1" value="0" data-value-target="t-shift-label" data-format="signed">
+                </div>
             </div>
             <div class="btn-group">
                 <button class="btn-full btn-danger" onclick="deleteTrigger()">DELETE</button>
@@ -784,11 +861,12 @@ function applyUndoSnapshot(snapshot) {
     const transposeRange = document.getElementById('transpose-range');
     if (transposeRange) transposeRange.value = STATE.gateTranspose;
     const transposeLabel = document.getElementById('transpose-label');
-    if (transposeLabel) transposeLabel.innerText = STATE.gateTranspose;
+    if (transposeLabel) transposeLabel.innerText = formatSliderValue('signed', STATE.gateTranspose);
     syncGateUI();
     updateGateSpinUI();
     updatePlayButton();
     updatePlanetList();
+    refreshSliderDisplays();
 }
 
 function undoLastMove() {
@@ -1070,6 +1148,57 @@ function updateMasterVolume(value) {
     AudioEngine.setVolume(volume);
 }
 
+function formatSliderValue(format, value) {
+    const num = parseFloat(value);
+    if (Number.isNaN(num)) return value;
+    switch (format) {
+        case 'percent':
+            return `${Math.round(num * 100)}%`;
+        case 'percent-100':
+            return `${Math.round(num * 100)}%`;
+        case 'speed':
+            return `${num.toFixed(1)}x`;
+        case 'rpm':
+            return `${Math.round(num)} RPM`;
+        case 'rpm-fine':
+            return num.toFixed(2);
+        case 'signed': {
+            const intVal = Math.round(num);
+            return intVal > 0 ? `+${intVal}` : `${intVal}`;
+        }
+        case 'int':
+            return `${Math.round(num)}`;
+        default:
+            return `${num}`;
+    }
+}
+
+function updateSliderValue(input) {
+    if (!input) return;
+    const targetId = input.dataset.valueTarget;
+    if (!targetId) return;
+    const target = document.getElementById(targetId);
+    if (!target) return;
+    const format = input.dataset.format || 'raw';
+    target.textContent = formatSliderValue(format, input.value);
+}
+
+function refreshSliderDisplays() {
+    const ids = [
+        'volume-range',
+        'speed-range',
+        'gate-range',
+        'transpose-range',
+        'gate-speed-range',
+        'p-rpm-range',
+        'p-vol'
+    ];
+    ids.forEach(id => {
+        const input = document.getElementById(id);
+        if (input) updateSliderValue(input);
+    });
+}
+
 function updatePlayButton() {
     const btn = document.getElementById('btn-play');
     if (!btn) return;
@@ -1082,7 +1211,10 @@ function updateGateSpinUI() {
     const dirBtn = document.getElementById('btn-gate-dir');
     if (dirBtn) dirBtn.innerText = STATE.gateSpinDirection === 1 ? "CW" : "CCW";
     const speedRange = document.getElementById('gate-speed-range');
-    if (speedRange) speedRange.value = STATE.gateSpinRPM;
+    if (speedRange) {
+        speedRange.value = STATE.gateSpinRPM;
+        updateSliderValue(speedRange);
+    }
 }
 
 const gateSpeedRange = document.getElementById('gate-speed-range');
@@ -1135,7 +1267,10 @@ function syncGateUI() {
     const gateCount = STATE.triggers.length;
     document.getElementById('gate-label').innerText = gateCount;
     const gateRange = document.getElementById('gate-range');
-    if (gateRange) gateRange.value = gateCount;
+    if (gateRange) {
+        gateRange.value = gateCount;
+        updateSliderValue(gateRange);
+    }
 }
 
 function updatePlanetList() {
@@ -1164,6 +1299,8 @@ function openGlobal() {
     document.getElementById('g-root').value = STATE.root;
     document.getElementById('g-scale').value = STATE.scale;
     document.getElementById('global-panel').style.display = 'block';
+    document.getElementById('modal-overlay').classList.add('active');
+    refreshSliderDisplays();
 }
 
 function applyGlobal() {
@@ -1326,9 +1463,10 @@ function handleFileLoad(input) {
             const transposeRange = document.getElementById('transpose-range');
             if (transposeRange) transposeRange.value = STATE.gateTranspose;
             const transposeLabel = document.getElementById('transpose-label');
-            if (transposeLabel) transposeLabel.innerText = STATE.gateTranspose;
+            if (transposeLabel) transposeLabel.innerText = formatSliderValue('signed', STATE.gateTranspose);
             syncGateUI();
             updateGateSpinUI();
+            refreshSliderDisplays();
 
             updatePlanetList();
             closePanel('global-panel');
@@ -1352,7 +1490,9 @@ function updateGlobalSpeed(val) {
         if (p) {
              const effectiveRPM = p.rpm * STATE.globalSpeed;
              document.getElementById('p-rpm').value = effectiveRPM.toFixed(2);
-             document.getElementById('p-rpm-range').value = effectiveRPM.toFixed(2);
+             const rpmRange = document.getElementById('p-rpm-range');
+             rpmRange.value = effectiveRPM.toFixed(2);
+             updateSliderValue(rpmRange);
         }
     }
 }
@@ -1388,15 +1528,21 @@ function updateGlobalTranspose(val) {
     pushUndoState();
     STATE.gateTranspose = clampShift(parseInt(val, 10) || 0);
     const transposeRange = document.getElementById('transpose-range');
-    if (transposeRange) transposeRange.value = STATE.gateTranspose;
+    if (transposeRange) {
+        transposeRange.value = STATE.gateTranspose;
+        updateSliderValue(transposeRange);
+    }
     const transposeLabel = document.getElementById('transpose-label');
-    if (transposeLabel) transposeLabel.innerText = STATE.gateTranspose;
+    if (transposeLabel) transposeLabel.innerText = formatSliderValue('signed', STATE.gateTranspose);
     if (STATE.editingTriggerId) {
         const t = STATE.triggers.find(x => x.id === STATE.editingTriggerId);
         if (t) {
             const shiftRange = document.getElementById('t-shift-range');
             const shiftLabel = document.getElementById('t-shift-label');
-            if (shiftRange) shiftRange.value = clampShift(t.shift);
+            if (shiftRange) {
+                shiftRange.value = clampShift(t.shift);
+                updateSliderValue(shiftRange);
+            }
             if (shiftLabel) shiftLabel.innerText = getEffectiveTriggerShift(t.shift);
         }
     }
@@ -1452,8 +1598,12 @@ function openPlanet(p) {
 
     const effectiveRPM = p.rpm * STATE.globalSpeed;
     document.getElementById('p-rpm').value = effectiveRPM.toFixed(2);
-    document.getElementById('p-rpm-range').value = effectiveRPM.toFixed(2);
-    document.getElementById('p-vol').value = p.velocity;
+    const rpmRange = document.getElementById('p-rpm-range');
+    rpmRange.value = effectiveRPM.toFixed(2);
+    updateSliderValue(rpmRange);
+    const volumeRange = document.getElementById('p-vol');
+    volumeRange.value = p.velocity;
+    updateSliderValue(volumeRange);
     panel.style.display = 'block';
 }
 
@@ -1469,7 +1619,9 @@ function openTrigger(t) {
     closePanel('orb-panel');
     closePanel('planet-panel');
     STATE.editingTriggerId = t.id;
-    document.getElementById('t-shift-range').value = clampShift(t.shift);
+    const shiftRange = document.getElementById('t-shift-range');
+    shiftRange.value = clampShift(t.shift);
+    updateSliderValue(shiftRange);
     document.getElementById('t-shift-label').innerText = getEffectiveTriggerShift(t.shift);
     document.getElementById('trigger-panel').style.display = 'block';
 }
@@ -1504,6 +1656,7 @@ function deleteTrigger() {
 
 document.getElementById('t-shift-range').oninput = (e) => {
     const val = clampShift(parseInt(e.target.value, 10) || 0);
+    updateSliderValue(e.target);
     const t = STATE.triggers.find(x => x.id === STATE.editingTriggerId);
     if (t) {
         pushUndoState();
@@ -1551,6 +1704,8 @@ function updateGates(val) {
     const count = parseInt(val);
     pushUndoState();
     document.getElementById('gate-label').innerText = count;
+    const gateRange = document.getElementById('gate-range');
+    if (gateRange) updateSliderValue(gateRange);
     const previousShifts = STATE.triggers
         .slice()
         .sort((a, b) => a.angle - b.angle)
@@ -1616,7 +1771,10 @@ document.getElementById('p-rpm').oninput = (e) => {
     const inputVal = parseFloat(e.target.value);
     updatePlanetRPM(inputVal);
     const range = document.getElementById('p-rpm-range');
-    if (range && !isNaN(inputVal)) range.value = inputVal;
+    if (range && !isNaN(inputVal)) {
+        range.value = inputVal;
+        updateSliderValue(range);
+    }
 };
 
 document.getElementById('p-rpm-range').oninput = (e) => {
@@ -1624,15 +1782,20 @@ document.getElementById('p-rpm-range').oninput = (e) => {
     updatePlanetRPM(inputVal);
     const numberInput = document.getElementById('p-rpm');
     if (numberInput && !isNaN(inputVal)) numberInput.value = inputVal.toFixed(2);
+    updateSliderValue(e.target);
 };
 
 document.getElementById('p-vol').oninput = (e) => {
     const p = STATE.planets.find(x => x.id === STATE.editingId);
     if(p) p.velocity = parseFloat(e.target.value);
+    updateSliderValue(e.target);
 };
 
 function closePanel(id) {
     document.getElementById(id).style.display = 'none';
+    if (id === 'global-panel') {
+        document.getElementById('modal-overlay').classList.remove('active');
+    }
     if(id === 'planet-panel') STATE.editingId = null;
     if(id === 'trigger-panel') STATE.editingTriggerId = null;
     if(id === 'orb-panel') {
@@ -2262,6 +2425,7 @@ document.getElementById('start-overlay').addEventListener('click', () => {
     AudioEngine.init();
     MidiEngine.init();
     updatePlanetList();
+    refreshSliderDisplays();
     STATE.isRunning = true;
     lastTime = 0; 
     document.getElementById('start-overlay').style.display = 'none';
