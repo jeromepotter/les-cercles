@@ -212,6 +212,50 @@
         .btn-active { color: var(--accent-orange); opacity: 1; border-bottom: 2px solid var(--accent-orange); }
         .btn-text:disabled { opacity: 0.3; cursor: not-allowed; }
 
+        details.side-panel {
+            pointer-events: auto;
+            width: 260px;
+            border: 1px solid rgba(0,0,0,0.08);
+            border-radius: 16px;
+            padding: 10px 12px;
+            background: rgba(255,255,255,0.6);
+            backdrop-filter: blur(6px);
+        }
+
+        details.side-panel summary {
+            list-style: none;
+            cursor: pointer;
+            font-size: 0.85em;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            font-weight: 700;
+            opacity: 0.7;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        details.side-panel summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .side-panel-content {
+            margin-top: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        #side-controls {
+            position: absolute;
+            inset: 0 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            pointer-events: none;
+            z-index: 20;
+        }
+
         /* PLANET LIST */
         #planet-list-wrap {
             --chip-size: 18px;
@@ -305,11 +349,10 @@
         }
         input[type=range]::-webkit-slider-thumb {
             -webkit-appearance: none;
-            width: 4px;
-            height: 22px;
-            border-radius: 999px;
-            background: var(--ink-color);
-            box-shadow: 0 0 0 6px rgba(255,255,255,0.2);
+            width: 0;
+            height: 0;
+            background: transparent;
+            box-shadow: none;
         }
         input[type=range]::-webkit-slider-runnable-track {
             height: 100%;
@@ -320,10 +363,9 @@
             background: transparent;
         }
         input[type=range]::-moz-range-thumb {
-            width: 4px;
-            height: 22px;
-            border-radius: 999px;
-            background: var(--ink-color);
+            width: 0;
+            height: 0;
+            background: transparent;
             border: none;
         }
         input[type=range]::-moz-focus-outer { border: 0; }
@@ -333,7 +375,13 @@
             width: 190px;
             height: 40px;
             border-radius: 999px;
-            background: var(--slider-pill-bg);
+            background: linear-gradient(
+                to right,
+                rgba(0,0,0,0.22) 0%,
+                rgba(0,0,0,0.22) var(--slider-fill, 0%),
+                var(--slider-pill-bg) var(--slider-fill, 0%),
+                var(--slider-pill-bg) 100%
+            );
             border: 1px solid var(--slider-pill-border);
             display: flex;
             align-items: center;
@@ -379,9 +427,9 @@
         }
 
         #global-panel {
-            top: 80px;
-            right: 20px;
-            left: auto;
+            position: absolute;
+            top: 0;
+            left: 0;
             transform: none;
         }
 
@@ -513,7 +561,18 @@
                 flex-wrap: wrap;
                 justify-content: center;
             }
-            
+
+            #side-controls {
+                inset: auto 10px 90px;
+                flex-direction: column;
+                gap: 12px;
+            }
+
+            details.side-panel {
+                width: 100%;
+                max-width: 320px;
+            }
+
             .modal { width: 85vw; }
             #global-panel {
                 top: 50%;
@@ -538,7 +597,7 @@
             <div class="hud-group">
                 <h1 class="title">LES CERCLES</h1>
                 <div class="hud-item" onclick="toggleAudio()">AUDIO: <span id="audio-label">ON</span></div>
-                <div class="hud-item" onclick="openGlobal()">SETTINGS</div>
+            <div class="hud-item" id="settings-button" onclick="openGlobal()">SETTINGS</div>
             </div>
 
             <div class="hud-group">
@@ -556,7 +615,6 @@
                     </div>
                 </div>
 
-                <button id="btn-play" class="btn-text btn-fixed" onclick="togglePlay()">PLAY</button>
                 <button class="btn-text" onclick="toggleSlingshot()">ORB</button>
             </div>
         </div>
@@ -564,9 +622,12 @@
         <canvas id="mainCanvas"></canvas>
         <div id="modal-overlay" onclick="closePanel('global-panel')"></div>
         
-        <div id="controls-bar">
-            <div class="controls-row">
-                <div class="control-group">
+        <div id="side-controls">
+            <details class="side-panel" id="notes-panel" open>
+                <summary>NOTES</summary>
+                <div class="side-panel-content">
+                    <button id="btn-play" class="btn-text btn-fixed" onclick="togglePlay()">PLAY</button>
+
                     <div class="macro-slider-container">
                         <div class="slider-pill">
                             <span class="slider-pill__label">Speed</span>
@@ -576,14 +637,20 @@
                     </div>
 
                     <button id="btn-dir" class="btn-text" onclick="toggleDirection()">CCW</button>
-
                     <button class="btn-text" onclick="syncRPMs()">SYNC</button>
                     <button class="btn-text" onclick="evenSpacePlanets()">EVEN</button>
-                </div>
-            </div>
 
-            <div class="controls-row">
-                <div class="control-group gate-settings">
+                    <div id="planet-list-wrap">
+                        <button class="planet-chip-btn" onclick="addPlanet()">+</button>
+                        <div id="planet-list"></div>
+                        <button class="planet-chip-btn" onclick="deleteLastPlanet()">-</button>
+                    </div>
+                </div>
+            </details>
+
+            <details class="side-panel" id="gates-panel" open>
+                <summary>GATES</summary>
+                <div class="side-panel-content">
                     <div class="macro-slider-container">
                         <div class="slider-pill">
                             <span class="slider-pill__label">Gates</span>
@@ -614,13 +681,7 @@
 
                     <button id="btn-gate-dir" class="btn-text" onclick="toggleGateSpinDirection()">CW</button>
                 </div>
-            </div>
-
-            <div id="planet-list-wrap">
-                <button class="planet-chip-btn" onclick="addPlanet()">+</button>
-                <div id="planet-list"></div>
-                <button class="planet-chip-btn" onclick="deleteLastPlanet()">-</button>
-            </div>
+            </details>
         </div>
 
         <div id="planet-panel" class="modal">
@@ -1181,6 +1242,18 @@ function updateSliderValue(input) {
     if (!target) return;
     const format = input.dataset.format || 'raw';
     target.textContent = formatSliderValue(format, input.value);
+    updateSliderFill(input);
+}
+
+function updateSliderFill(input) {
+    const container = input.closest('.slider-pill');
+    if (!container) return;
+    const min = parseFloat(input.min || 0);
+    const max = parseFloat(input.max || 100);
+    const val = parseFloat(input.value || 0);
+    const percent = max > min ? ((val - min) / (max - min)) * 100 : 0;
+    const clamped = Math.max(0, Math.min(100, percent));
+    container.style.setProperty('--slider-fill', `${clamped}%`);
 }
 
 function refreshSliderDisplays() {
@@ -1298,7 +1371,19 @@ function updatePlanetList() {
 function openGlobal() {
     document.getElementById('g-root').value = STATE.root;
     document.getElementById('g-scale').value = STATE.scale;
-    document.getElementById('global-panel').style.display = 'block';
+    const panel = document.getElementById('global-panel');
+    const settingsButton = document.getElementById('settings-button');
+    const container = document.getElementById('game-container');
+    panel.style.display = 'block';
+    if (panel && settingsButton && container) {
+        const btnRect = settingsButton.getBoundingClientRect();
+        const containerRect = container.getBoundingClientRect();
+        const desiredTop = btnRect.bottom - containerRect.top + 8;
+        const desiredLeft = btnRect.left - containerRect.left;
+        const maxLeft = containerRect.width - panel.offsetWidth - 10;
+        panel.style.top = `${Math.max(10, desiredTop)}px`;
+        panel.style.left = `${Math.max(10, Math.min(desiredLeft, maxLeft))}px`;
+    }
     document.getElementById('modal-overlay').classList.add('active');
     refreshSliderDisplays();
 }
