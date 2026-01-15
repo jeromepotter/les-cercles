@@ -407,8 +407,9 @@
 
             .control-group {
                 width: 100%;
-                justify-content: space-around; 
-                gap: 2px;
+                justify-content: center; 
+                flex-wrap: wrap;
+                gap: 8px 6px;
             }
             
             input[type=range] { width: 70px; }
@@ -430,6 +431,11 @@
             .controls-row {
                 flex-direction: column;
                 gap: 10px;
+            }
+
+            .gate-settings {
+                flex-wrap: wrap;
+                justify-content: center;
             }
             
             .modal { width: 85vw; }
@@ -2005,7 +2011,7 @@ function loop(time) {
     }
 
     // === SEQUENCER PHYSICS ===
-    if (STATE.isRunning && !STATE.isPaused) {
+    if (STATE.isRunning) {
         const gateSpinRate = (STATE.gateSpinRPM * Math.PI * 2) / 60;
         if (STATE.gateSpinActive) {
             spinAllTriggers(gateSpinRate * STATE.gateSpinDirection * dt);
