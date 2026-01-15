@@ -498,6 +498,14 @@
 
                         <button class="btn-text" onclick="randomizeGateTranspose()">RND TRNS</button>
                         <button class="btn-text" onclick="randomizeGateSpacing()">RND SPC</button>
+                        <button id="btn-gate-play" class="btn-text" onclick="toggleGateSpin()">PLAY</button>
+
+                        <div class="macro-slider-container">
+                            <label>GATE SPEED</label>
+                            <input id="gate-speed-range" type="range" min="1" max="60" step="1" value="10" oninput="updateGateSpinSpeed(this.value)">
+                        </div>
+
+                        <button id="btn-gate-dir" class="btn-text" onclick="toggleGateSpinDirection()">CW</button>
                     </div>
                 </div>
             </div>
@@ -652,6 +660,9 @@ const STATE = {
     globalSpeed: 1.0,
     gateTranspose: 0,
     direction: -1,
+    gateSpinActive: false,
+    gateSpinRPM: 10,
+    gateSpinDirection: 1,
     projectiles: [], 
     slingshot: { active: false, isDragging: false, pullX: 0, pullY: 0 },
     centerColor: 'var(--ink-color)',
@@ -662,6 +673,7 @@ const STATE = {
         velocity: 0.7
     }
 };
+STATE.gateSpinDirection = STATE.direction * -1;
 
 const UNDO_LIMIT = 20;
 const undoStack = [];
@@ -997,6 +1009,15 @@ function updatePlayButton() {
     btn.innerText = STATE.isPaused ? "PLAY" : "PAUSE";
 }
 
+function updateGateSpinUI() {
+    const btn = document.getElementById('btn-gate-play');
+    if (btn) btn.innerText = STATE.gateSpinActive ? "PAUSE" : "PLAY";
+    const dirBtn = document.getElementById('btn-gate-dir');
+    if (dirBtn) dirBtn.innerText = STATE.gateSpinDirection === 1 ? "CW" : "CCW";
+    const speedRange = document.getElementById('gate-speed-range');
+    if (speedRange) speedRange.value = STATE.gateSpinRPM;
+}
+
 function togglePlay() {
     STATE.isPaused = !STATE.isPaused;
     updatePlayButton();
@@ -1010,6 +1031,21 @@ function toggleDirection() {
     btn.innerText = isCW ? "CW" : "CCW";
     if(isCW) document.body.classList.add('dark-mode');
     else document.body.classList.remove('dark-mode');
+}
+
+function toggleGateSpin() {
+    STATE.gateSpinActive = !STATE.gateSpinActive;
+    updateGateSpinUI();
+}
+
+function toggleGateSpinDirection() {
+    STATE.gateSpinDirection *= -1;
+    updateGateSpinUI();
+}
+
+function updateGateSpinSpeed(val) {
+    STATE.gateSpinRPM = Math.min(60, Math.max(1, parseFloat(val)));
+    updateGateSpinUI();
 }
 
 function syncGateUI() {
@@ -1163,7 +1199,9 @@ function savePattern() {
         customScale: STATE.customScale,
         globalSpeed: STATE.globalSpeed,
         gateTranspose: STATE.gateTranspose,
-        direction: STATE.direction
+        direction: STATE.direction,
+        gateSpinRPM: STATE.gateSpinRPM,
+        gateSpinDirection: STATE.gateSpinDirection
     };
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data));
     const downloadAnchorNode = document.createElement('a');
@@ -1192,12 +1230,14 @@ function handleFileLoad(input) {
             if(data.customScale) STATE.customScale = data.customScale;
             STATE.globalSpeed = data.globalSpeed;
             STATE.gateTranspose = data.gateTranspose || 0;
-            
             STATE.direction = data.direction || -1; 
             const isCW = STATE.direction === 1;
             document.getElementById('btn-dir').innerText = isCW ? "CW" : "CCW";
             if(isCW) document.body.classList.add('dark-mode');
             else document.body.classList.remove('dark-mode');
+            if (data.gateSpinRPM) STATE.gateSpinRPM = data.gateSpinRPM;
+            if (data.gateSpinDirection) STATE.gateSpinDirection = data.gateSpinDirection;
+            if (!data.gateSpinDirection) STATE.gateSpinDirection = STATE.direction * -1;
 
             const speedRange = document.getElementById('speed-range');
             if (speedRange) speedRange.value = STATE.globalSpeed;
@@ -1206,6 +1246,7 @@ function handleFileLoad(input) {
             const transposeLabel = document.getElementById('transpose-label');
             if (transposeLabel) transposeLabel.innerText = STATE.gateTranspose;
             syncGateUI();
+            updateGateSpinUI();
 
             updatePlanetList();
             closePanel('global-panel');
@@ -1527,8 +1568,7 @@ let isDragging = false;
 let dragStartTime = 0;
 let dragAllTriggers = false;
 let isSpaceDown = false;
-
-const GATE_SPIN_STEP = Math.PI / 30;
+let gateSpinKeyDirection = 0;
 
 function shouldIgnoreKeyEvent(target) {
     if (!target) return false;
@@ -1830,15 +1870,21 @@ window.addEventListener('keydown', e => {
     if (!isSpaceDown) return;
     if (e.code === 'ArrowLeft' || e.code === 'ArrowRight') {
         e.preventDefault();
-        pushUndoState();
         const direction = e.code === 'ArrowLeft' ? -1 : 1;
-        spinAllTriggers(GATE_SPIN_STEP * direction);
+        if (gateSpinKeyDirection === 0) {
+            pushUndoState();
+        }
+        gateSpinKeyDirection = direction;
     }
 });
 
 window.addEventListener('keyup', e => {
     if (e.code === 'Space') {
         isSpaceDown = false;
+        gateSpinKeyDirection = 0;
+    }
+    if (e.code === 'ArrowLeft' || e.code === 'ArrowRight') {
+        if (gateSpinKeyDirection !== 0) gateSpinKeyDirection = 0;
     }
 });
 
@@ -1959,6 +2005,16 @@ function loop(time) {
     }
 
     // === SEQUENCER PHYSICS ===
+    if (STATE.isRunning && !STATE.isPaused) {
+        const gateSpinRate = (STATE.gateSpinRPM * Math.PI * 2) / 60;
+        if (STATE.gateSpinActive) {
+            spinAllTriggers(gateSpinRate * STATE.gateSpinDirection * dt);
+        }
+        if (gateSpinKeyDirection !== 0) {
+            spinAllTriggers(gateSpinRate * gateSpinKeyDirection * dt);
+        }
+    }
+
     STATE.planets.forEach(p => {
         if (dragTarget && dragTarget.type === 'planet' && dragTarget.obj === p) {
         } 
@@ -2126,6 +2182,7 @@ document.getElementById('start-overlay').addEventListener('click', () => {
     lastTime = 0; 
     document.getElementById('start-overlay').style.display = 'none';
     updatePlayButton();
+    updateGateSpinUI();
     requestAnimationFrame(loop);
 });
 
