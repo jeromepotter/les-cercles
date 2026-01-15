@@ -15,6 +15,8 @@
             --panel-bg: #f4f4f2;
             --border: 1px solid #bbb;
             --shadow: 0 2px 5px rgba(0,0,0,0.1);
+            --slider-track: rgba(0,0,0,0.12);
+            --slider-border: rgba(0,0,0,0.08);
         }
 
         /* DARK MODE overrides */
@@ -24,6 +26,8 @@
             --panel-bg: #2a2a2a;
             --border: 1px solid #444;
             --shadow: 0 4px 10px rgba(0,0,0,0.4);
+            --slider-track: rgba(255,255,255,0.12);
+            --slider-border: rgba(255,255,255,0.12);
         }
 
         @font-face {
@@ -71,7 +75,13 @@
             font-weight: 500;
             letter-spacing: 0.5px;
             z-index: 10;
-            justify-content: space-between; 
+            justify-content: space-between;
+        }
+
+        .hud-group {
+            display: flex;
+            align-items: center;
+            gap: 16px;
         }
 
         h1.title {
@@ -83,7 +93,6 @@
         }
         @media (min-width: 768px) {
             h1.title { display: block; }
-            #hud-top { justify-content: flex-start; }
         }
 
         .hud-item {
@@ -125,6 +134,7 @@
 
         .volume-control input[type=range] {
             width: 90px;
+            --slider-height: 30px;
         }
 
         /* CONTROLS BAR */
@@ -144,7 +154,7 @@
         .controls-row {
             width: 100%;
             display: flex;
-            justify-content: space-between;
+            justify-content: center;
             align-items: flex-end;
             gap: 20px;
             pointer-events: none;
@@ -291,21 +301,41 @@
         }
         input[type=range] {
             -webkit-appearance: none;
-            width: 100px;
-            height: 4px;
-            background: #ccc;
-            border-radius: 2px;
+            appearance: none;
+            width: 140px;
+            --slider-height: 36px;
+            height: var(--slider-height);
+            background: transparent;
             outline: none;
+            cursor: pointer;
         }
         input[type=range]::-webkit-slider-thumb {
             -webkit-appearance: none;
-            width: 18px; 
-            height: 18px;
-            border-radius: 50%;
+            width: 4px;
+            height: 22px;
+            border-radius: 999px;
             background: var(--ink-color);
-            cursor: pointer;
-            border: 2px solid var(--bg-color);
-            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+            margin-top: calc((var(--slider-height) - 22px) / 2);
+            box-shadow: 0 0 0 6px rgba(255,255,255,0.25);
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            height: var(--slider-height);
+            background: var(--slider-track);
+            border-radius: 999px;
+            border: 1px solid var(--slider-border);
+        }
+        input[type=range]::-moz-range-track {
+            height: var(--slider-height);
+            background: var(--slider-track);
+            border-radius: 999px;
+            border: 1px solid var(--slider-border);
+        }
+        input[type=range]::-moz-range-thumb {
+            width: 4px;
+            height: 22px;
+            border-radius: 999px;
+            background: var(--ink-color);
+            border: none;
         }
 
         /* PANELS */
@@ -364,10 +394,9 @@
         .key-circle {
             width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--ink-color);
             display: flex; justify-content: center; align-items: center; cursor: pointer;
-            font-size: 0.75em; font-weight: bold; opacity: 0.5;
+            font-size: 0.75em; font-weight: bold; opacity: 1; background: #fff; color: var(--ink-color);
         }
-        .key-circle.active { background: var(--ink-color); color: var(--bg-color); opacity: 1; }
-        .key-circle.black-key { background: rgba(0,0,0,0.1); }
+        .key-circle.active { background: #000; color: #fff; opacity: 1; }
 
         #start-overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
@@ -382,6 +411,7 @@
                 gap: 5px;
             }
             .hud-item { font-size: 0.75em; }
+            .hud-group { gap: 8px; }
             
             select.midi-select {
                 max-width: 80px;
@@ -412,9 +442,9 @@
                 gap: 8px 6px;
             }
             
-            input[type=range] { width: 70px; }
+            input[type=range] { width: 110px; --slider-height: 30px; }
             .macro-slider-container label { font-size: 0.7em !important; }
-            .volume-control input[type=range] { width: 70px; }
+            .volume-control input[type=range] { width: 80px; }
 
             .btn-text {
                 font-size: 0.7em;
@@ -453,19 +483,26 @@
 
     <div id="game-container">
         <div id="hud-top">
-            <h1 class="title">LES CERCLES</h1>
-            <div class="hud-item" onclick="toggleAudio()">AUDIO: <span id="audio-label">ON</span></div>
-            <div class="hud-item" onclick="openGlobal()">SETTINGS</div>
-
-            <div class="hud-item">
-                <select id="midi-select" class="midi-select" onchange="MidiEngine.selectOutput(this.value)">
-                    <option value="">MIDI...</option>
-                </select>
+            <div class="hud-group">
+                <h1 class="title">LES CERCLES</h1>
+                <div class="hud-item" onclick="toggleAudio()">AUDIO: <span id="audio-label">ON</span></div>
+                <div class="hud-item" onclick="openGlobal()">SETTINGS</div>
             </div>
 
-            <div class="hud-item volume-control">
-                <label for="volume-range">VOL</label>
-                <input id="volume-range" type="range" min="0" max="2" step="0.01" value="1" oninput="updateMasterVolume(this.value)">
+            <div class="hud-group">
+                <div class="hud-item">
+                    <select id="midi-select" class="midi-select" onchange="MidiEngine.selectOutput(this.value)">
+                        <option value="">MIDI...</option>
+                    </select>
+                </div>
+
+                <div class="hud-item volume-control">
+                    <label for="volume-range">VOL</label>
+                    <input id="volume-range" type="range" min="0" max="2" step="0.01" value="1" oninput="updateMasterVolume(this.value)">
+                </div>
+
+                <button id="btn-play" class="btn-text" onclick="togglePlay()">PLAY</button>
+                <button class="btn-text" onclick="toggleSlingshot()">ORB</button>
             </div>
         </div>
 
@@ -474,8 +511,6 @@
         <div id="controls-bar">
             <div class="controls-row">
                 <div class="control-group">
-                    <button id="btn-play" class="btn-text" onclick="togglePlay()">PLAY</button>
-
                     <div class="macro-slider-container">
                         <label>SPEED</label>
                         <input id="speed-range" type="range" min="0.1" max="3.0" step="0.1" value="1.0" oninput="updateGlobalSpeed(this.value)">
@@ -483,36 +518,33 @@
 
                     <button id="btn-dir" class="btn-text" onclick="toggleDirection()">CCW</button>
 
-                    <button id="btn-undo" class="btn-text" onclick="undoLastMove()" disabled>UNDO</button>
-                    <button class="btn-text" onclick="clearAll()">CLEAR</button>
                     <button class="btn-text" onclick="syncRPMs()">SYNC</button>
                     <button class="btn-text" onclick="evenSpacePlanets()">EVEN</button>
-                    <button class="btn-text" onclick="toggleSlingshot()">ORB</button>
                 </div>
+            </div>
 
-                <div class="control-group">
-                    <div class="gate-settings">
-                        <div class="macro-slider-container">
-                            <label>GATES: <span id="gate-label">1</span></label>
-                            <input id="gate-range" type="range" min="1" max="32" step="1" value="1" oninput="updateGates(this.value)">
-                        </div>
-
-                        <div class="macro-slider-container">
-                            <label>TRANSPOSE: <span id="transpose-label">0</span></label>
-                            <input id="transpose-range" type="range" min="-7" max="7" step="1" value="0" oninput="updateGlobalTranspose(this.value)">
-                        </div>
-
-                        <button class="btn-text" onclick="randomizeGateTranspose()">RND TRNS</button>
-                        <button class="btn-text" onclick="randomizeGateSpacing()">RND SPC</button>
-                        <button id="btn-gate-play" class="btn-text" onclick="toggleGateSpin()">PLAY</button>
-
-                        <div class="macro-slider-container">
-                            <label>GATE SPEED</label>
-                            <input id="gate-speed-range" type="range" min="1" max="60" step="1" value="10" oninput="updateGateSpinSpeed(this.value)">
-                        </div>
-
-                        <button id="btn-gate-dir" class="btn-text" onclick="toggleGateSpinDirection()">CW</button>
+            <div class="controls-row">
+                <div class="control-group gate-settings">
+                    <div class="macro-slider-container">
+                        <label>GATES: <span id="gate-label">1</span></label>
+                        <input id="gate-range" type="range" min="1" max="32" step="1" value="1" oninput="updateGates(this.value)">
                     </div>
+
+                    <div class="macro-slider-container">
+                        <label>TRANSPOSE: <span id="transpose-label">0</span></label>
+                        <input id="transpose-range" type="range" min="-7" max="7" step="1" value="0" oninput="updateGlobalTranspose(this.value)">
+                    </div>
+
+                    <button class="btn-text" onclick="randomizeGateTranspose()">RND TRNS</button>
+                    <button class="btn-text" onclick="randomizeGateSpacing()">RND SPC</button>
+                    <button id="btn-gate-play" class="btn-text" onclick="toggleGateSpin()">PLAY</button>
+
+                    <div class="macro-slider-container">
+                        <label>GATE SPEED</label>
+                        <input id="gate-speed-range" type="range" min="1" max="60" step="1" value="10" oninput="updateGateSpinSpeed(this.value)">
+                    </div>
+
+                    <button id="btn-gate-dir" class="btn-text" onclick="toggleGateSpinDirection()">CW</button>
                 </div>
             </div>
 
@@ -612,6 +644,13 @@
                 <button class="btn-full" onclick="savePattern()">SAVE .JSON</button>
                 <button class="btn-full" onclick="triggerLoad()">LOAD .JSON</button>
             </div>
+            <div class="btn-group">
+                <button id="btn-undo" class="btn-full" onclick="undoLastMove()" disabled>UNDO</button>
+                <button id="btn-redo" class="btn-full" onclick="redoLastMove()" disabled>REDO</button>
+            </div>
+            <div class="btn-group">
+                <button class="btn-full btn-danger" onclick="clearAll()">CLEAR</button>
+            </div>
         </div>
 
         <div id="scale-editor" class="modal">
@@ -683,30 +722,37 @@ STATE.gateSpinDirection = STATE.direction * -1;
 
 const UNDO_LIMIT = 20;
 const undoStack = [];
+const redoStack = [];
 
 function createUndoSnapshot() {
     return {
         planets: STATE.planets.map(p => ({ ...p })),
         triggers: STATE.triggers.map(t => ({ ...t })),
+        projectiles: STATE.projectiles.map(o => ({ ...o })),
         root: STATE.root,
         scale: STATE.scale,
         customScale: [...STATE.customScale],
         globalSpeed: STATE.globalSpeed,
         gateTranspose: STATE.gateTranspose,
         direction: STATE.direction,
-        isPaused: STATE.isPaused
+        isPaused: STATE.isPaused,
+        gateSpinActive: STATE.gateSpinActive,
+        gateSpinRPM: STATE.gateSpinRPM,
+        gateSpinDirection: STATE.gateSpinDirection
     };
 }
 
 function pushUndoState() {
     undoStack.push(createUndoSnapshot());
     if (undoStack.length > UNDO_LIMIT) undoStack.shift();
-    updateUndoButton();
+    redoStack.length = 0;
+    updateUndoRedoButtons();
 }
 
 function applyUndoSnapshot(snapshot) {
     STATE.planets = snapshot.planets.map(p => ({ ...p }));
     STATE.triggers = snapshot.triggers.map(t => ({ ...t }));
+    STATE.projectiles = (snapshot.projectiles || []).map(o => ({ ...o }));
     STATE.root = snapshot.root;
     STATE.scale = snapshot.scale;
     STATE.customScale = [...snapshot.customScale];
@@ -714,6 +760,9 @@ function applyUndoSnapshot(snapshot) {
     STATE.gateTranspose = snapshot.gateTranspose ?? 0;
     STATE.direction = snapshot.direction;
     STATE.isPaused = snapshot.isPaused;
+    STATE.gateSpinActive = snapshot.gateSpinActive ?? false;
+    STATE.gateSpinRPM = snapshot.gateSpinRPM ?? 10;
+    STATE.gateSpinDirection = snapshot.gateSpinDirection ?? (STATE.direction * -1);
     STATE.orbPanelPrevSlingshot = null;
 
     STATE.editingId = null;
@@ -737,21 +786,33 @@ function applyUndoSnapshot(snapshot) {
     const transposeLabel = document.getElementById('transpose-label');
     if (transposeLabel) transposeLabel.innerText = STATE.gateTranspose;
     syncGateUI();
+    updateGateSpinUI();
     updatePlayButton();
     updatePlanetList();
 }
 
 function undoLastMove() {
     if (undoStack.length === 0) return;
+    redoStack.push(createUndoSnapshot());
     const snapshot = undoStack.pop();
     applyUndoSnapshot(snapshot);
-    updateUndoButton();
+    updateUndoRedoButtons();
 }
 
-function updateUndoButton() {
+function redoLastMove() {
+    if (redoStack.length === 0) return;
+    undoStack.push(createUndoSnapshot());
+    const snapshot = redoStack.pop();
+    applyUndoSnapshot(snapshot);
+    updateUndoRedoButtons();
+}
+
+function updateUndoRedoButtons() {
     const btn = document.getElementById('btn-undo');
     if (!btn) return;
     btn.disabled = undoStack.length === 0;
+    const redoBtn = document.getElementById('btn-redo');
+    if (redoBtn) redoBtn.disabled = redoStack.length === 0;
 }
 
 /**
@@ -1024,6 +1085,15 @@ function updateGateSpinUI() {
     if (speedRange) speedRange.value = STATE.gateSpinRPM;
 }
 
+const gateSpeedRange = document.getElementById('gate-speed-range');
+if (gateSpeedRange) {
+    const stopGateSpeedAdjust = () => { gateSpeedIsAdjusting = false; };
+    gateSpeedRange.addEventListener('change', stopGateSpeedAdjust);
+    gateSpeedRange.addEventListener('pointerup', stopGateSpeedAdjust);
+    gateSpeedRange.addEventListener('touchend', stopGateSpeedAdjust, { passive: true });
+    gateSpeedRange.addEventListener('blur', stopGateSpeedAdjust);
+}
+
 function togglePlay() {
     STATE.isPaused = !STATE.isPaused;
     updatePlayButton();
@@ -1040,16 +1110,23 @@ function toggleDirection() {
 }
 
 function toggleGateSpin() {
+    pushUndoState();
     STATE.gateSpinActive = !STATE.gateSpinActive;
     updateGateSpinUI();
 }
 
 function toggleGateSpinDirection() {
+    pushUndoState();
     STATE.gateSpinDirection *= -1;
     updateGateSpinUI();
 }
 
+let gateSpeedIsAdjusting = false;
 function updateGateSpinSpeed(val) {
+    if (!gateSpeedIsAdjusting) {
+        pushUndoState();
+        gateSpeedIsAdjusting = true;
+    }
     STATE.gateSpinRPM = Math.min(60, Math.max(1, parseFloat(val)));
     updateGateSpinUI();
 }
@@ -1153,7 +1230,6 @@ function openScaleEditor() {
     notes.forEach((n, i) => {
         const div = document.createElement('div');
         div.className = 'key-circle';
-        if (n.includes('#')) div.classList.add('black-key');
         div.innerText = n;
         
         if (STATE.customScale.includes(i)) {
@@ -1257,7 +1333,8 @@ function handleFileLoad(input) {
             updatePlanetList();
             closePanel('global-panel');
             undoStack.length = 0;
-            updateUndoButton();
+            redoStack.length = 0;
+            updateUndoRedoButtons();
             alert("Pattern Loaded!");
         } catch(err) {
             console.error(err);
@@ -1817,6 +1894,7 @@ function handleEnd() {
         
         // Spawn New Orb (Limit 32)
         if (STATE.projectiles.length < 32) {
+            pushUndoState();
             STATE.projectiles.push({
                 id: Date.now() + Math.random(),
                 x: centerX,
