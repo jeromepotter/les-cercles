@@ -552,25 +552,42 @@
                 <label>Transpose: <span id="t-shift-label">0</span></label>
                 <input type="range" id="t-shift-range" min="-7" max="7" step="1" value="0">
             </div>
+            
+            <div class="btn-group" style="margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid #ddd;">
+                <button class="btn-full" onclick="randomizeGateTranspose()">RND TRANSPOSE</button>
+                <button class="btn-full" onclick="randomizeGateSpacing()">RND SPACING</button>
+            </div>
+
             <div class="btn-group">
-                <button class="btn-full btn-danger" onclick="deleteTrigger()">DELETE</button>
+                <button class="btn-full btn-danger" onclick="deleteTrigger()">DELETE GATE</button>
                 <button class="btn-full" onclick="closePanel('trigger-panel')">DONE</button>
             </div>
         </div>
 
         <div id="orb-panel" class="modal">
-            <h2>Orb Settings</h2>
+            <h2 id="orb-panel-title">Orb Settings</h2>
+            
             <div class="control-row">
-                <label>Trigger</label>
+                <label>Trigger Mode</label>
                 <select id="o-trigger">
                     <option value="notes">NOTES</option>
                     <option value="gates">GATES</option>
                     <option value="circle">CIRCLE</option>
                 </select>
             </div>
+            
+            <div class="control-row">
+                <label>Velocity</label>
+                <input type="range" id="o-velocity" min="0.1" max="1.0" step="0.05">
+            </div>
+
             <div class="control-row">
                 <label>Collision</label>
                 <input type="checkbox" id="o-collision">
+            </div>
+
+            <div class="btn-group">
+                <button id="btn-delete-orb" class="btn-full btn-danger" style="display:none;" onclick="deleteSelectedOrb()">DELETE ORB</button>
             </div>
             <div class="btn-group">
                 <button class="btn-full" onclick="closePanel('orb-panel')">DONE</button>
@@ -662,7 +679,7 @@ const STATE = {
     customScale: [0,2,4,5,7,9,11], 
     editingId: null, 
     editingTriggerId: null, 
-    editingOrbId: null,
+    editingOrbId: null, // NEW: Track selected orb
     globalSpeed: 1.0,
     gateTranspose: 0,
     direction: -1,
@@ -676,10 +693,16 @@ const STATE = {
     orbSettings: {
         triggerMode: 'notes',
         collision: false,
-        velocity: 0.7
+        velocity: 0.8 // Default velocity
     }
 };
 STATE.gateSpinDirection = STATE.direction * -1;
+
+// --- AUTO BLUR BUTTONS FIX ---
+// This removes focus from buttons immediately after clicking
+document.addEventListener('click', (e) => {
+    if(e.target.tagName === 'BUTTON') e.target.blur();
+});
 
 const UNDO_LIMIT = 20;
 const undoStack = [];
@@ -1100,10 +1123,7 @@ function applyGlobal() {
 
 /* QUANTIZATION LOGIC */
 function quantizePlanets() {
-    // 1. Get allowed notes in new scale
     const allowedNotes = MusicTheory.getNotes(STATE.root, STATE.scale);
-    
-    // 2. Helper to convert Note to Midi Value for comparison
     const getMidiVal = (n) => {
         const key = n.slice(0, -1);
         const oct = parseInt(n.slice(-1));
@@ -1111,14 +1131,10 @@ function quantizePlanets() {
         return oct * 12 + idx;
     };
 
-    // 3. Iterate planets
     STATE.planets.forEach(p => {
         const currentVal = getMidiVal(p.note);
-        
-        // Find closest valid note
         let closest = allowedNotes[0];
         let minDiff = 999;
-        
         allowedNotes.forEach(valid => {
             const diff = Math.abs(getMidiVal(valid) - currentVal);
             if(diff < minDiff) {
@@ -1126,11 +1142,9 @@ function quantizePlanets() {
                 closest = valid;
             }
         });
-        
         p.note = closest;
     });
     
-    // Update UI if open
     if(STATE.editingId) {
         const p = STATE.planets.find(x => x.id === STATE.editingId);
         if(p) openPlanet(p);
@@ -1179,7 +1193,6 @@ function openScaleEditor() {
 
 function finishCustomScale() {
     pushUndoState();
-    // Explicitly set state so openGlobal reads it correctly
     STATE.scale = 'custom';
     closePanel('scale-editor');
     openGlobal();
@@ -1191,7 +1204,6 @@ function toggleSlingshot() {
         openOrbPanel();
         return;
     }
-
     STATE.slingshot.active = true;
     openOrbPanel();
 }
@@ -1292,13 +1304,6 @@ function getEffectiveTriggerShift(shift) {
     return clampEffectiveShift(shift + STATE.gateTranspose);
 }
 
-function playOrbNote(orb) {
-    if (!orb.pitch) return;
-    const velocity = orb.velocity ?? 0.7;
-    AudioEngine.playNote(orb.pitch, velocity);
-    MidiEngine.sendNote(orb.pitch, velocity);
-}
-
 function assignOrbPitch(orb) {
     orb.pitch = MusicTheory.getRandomNoteInRange(STATE.root, STATE.scale, 2, 5);
 }
@@ -1397,25 +1402,49 @@ function openTrigger(t) {
     document.getElementById('trigger-panel').style.display = 'block';
 }
 
-function openOrbPanel() {
+// === UPDATED ORB PANEL LOGIC ===
+function openOrbPanel(selectedOrb = null) {
     closePanel('planet-panel');
     closePanel('trigger-panel');
-    STATE.editingOrbId = null;
+    
+    STATE.editingOrbId = selectedOrb ? selectedOrb.id : null;
+    
     const panel = document.getElementById('orb-panel');
+    const title = document.getElementById('orb-panel-title');
     const triggerSel = document.getElementById('o-trigger');
     const collisionToggle = document.getElementById('o-collision');
+    const velocityRange = document.getElementById('o-velocity');
+    const deleteBtn = document.getElementById('btn-delete-orb');
 
-    const target = STATE.orbSettings;
-    if (!target.triggerMode) target.triggerMode = 'notes';
+    if (selectedOrb) {
+        title.innerText = "EDIT ORB";
+        deleteBtn.style.display = 'block';
+        // Set values from this specific orb
+        velocityRange.value = selectedOrb.velocity || 0.8;
+        // Orbs don't currently store triggerMode individually, but we could.
+        // For now, we show global settings, but velocity is specific.
+    } else {
+        title.innerText = "ORB SETTINGS";
+        deleteBtn.style.display = 'none';
+        velocityRange.value = STATE.orbSettings.velocity || 0.8;
+    }
 
-    triggerSel.value = target.triggerMode;
-    collisionToggle.checked = !!target.collision;
+    triggerSel.value = STATE.orbSettings.triggerMode;
+    collisionToggle.checked = !!STATE.orbSettings.collision;
 
     if (STATE.orbPanelPrevSlingshot === null) {
         STATE.orbPanelPrevSlingshot = STATE.slingshot.active;
     }
     STATE.slingshot.active = true;
     panel.style.display = 'block';
+}
+
+function deleteSelectedOrb() {
+    if (STATE.editingOrbId) {
+        STATE.projectiles = STATE.projectiles.filter(o => o.id !== STATE.editingOrbId);
+        STATE.editingOrbId = null;
+        closePanel('orb-panel');
+    }
 }
 
 function deleteTrigger() {
@@ -1522,6 +1551,19 @@ document.getElementById('p-note').onchange = (e) => {
 
 document.getElementById('o-trigger').onchange = (e) => {
     STATE.orbSettings.triggerMode = e.target.value;
+};
+
+// Handle Orb Velocity Changes
+document.getElementById('o-velocity').oninput = (e) => {
+    const val = parseFloat(e.target.value);
+    if (STATE.editingOrbId) {
+        // Edit specific orb
+        const orb = STATE.projectiles.find(o => o.id === STATE.editingOrbId);
+        if(orb) orb.velocity = val;
+    } else {
+        // Edit global setting
+        STATE.orbSettings.velocity = val;
+    }
 };
 
 document.getElementById('o-collision').onchange = (e) => {
@@ -1838,7 +1880,7 @@ function handleEnd() {
         if (duration < 300) { 
             if (dragTarget.type === 'trigger') openTrigger(dragTarget.obj);
             if (dragTarget.type === 'planet') openPlanet(dragTarget.obj);
-            if (dragTarget.type === 'orb') openOrbPanel();
+            if (dragTarget.type === 'orb') openOrbPanel(dragTarget.obj);
         }
     }
     isDragging = false;
@@ -1932,12 +1974,14 @@ function loop(time) {
             if (STATE.orbSettings.triggerMode === 'circle') {
                 if (!orb.pitch) assignOrbPitch(orb);
                 if (orb.cooldown <= 0) {
-                    playOrbNote(orb);
+                    AudioEngine.playNote(orb.pitch, orb.velocity || 0.8);
+                    MidiEngine.sendNote(orb.pitch, orb.velocity || 0.8);
                     orb.cooldown = 0.2;
                 }
             }
         }
 
+        // === FIXED TRANSPOSITION LOGIC ===
         if (STATE.orbSettings.triggerMode === 'gates') {
             if (!orb.pitch) assignOrbPitch(orb);
             for (const tObj of STATE.triggers) {
@@ -1945,7 +1989,16 @@ function loop(time) {
                 const ty = centerY + Math.sin(tObj.angle) * STATE.orbitRadius;
                 const distT = Math.sqrt((orb.x - tx) * (orb.x - tx) + (orb.y - ty) * (orb.y - ty));
                 if (distT < 12 && orb.cooldown <= 0) {
-                    playOrbNote(orb);
+                    // CALCULATE TRANSPOSED NOTE
+                    const noteToPlay = MusicTheory.getShiftedNote(
+                        STATE.root,
+                        STATE.scale,
+                        orb.pitch,
+                        getEffectiveTriggerShift(tObj.shift)
+                    );
+                    AudioEngine.playNote(noteToPlay, orb.velocity || 0.8);
+                    MidiEngine.sendNote(noteToPlay, orb.velocity || 0.8);
+                    
                     orb.cooldown = 0.2;
                     break;
                 }
@@ -2109,6 +2162,13 @@ function loop(time) {
         ctx.arc(orb.x, orb.y, 5, 0, Math.PI*2);
         ctx.fillStyle = orb.color;
         ctx.fill();
+        
+        // Highlight selected orb
+        if (STATE.editingOrbId === orb.id) {
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+        }
     });
     
     // Triggers
