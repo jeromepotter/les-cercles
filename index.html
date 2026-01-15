@@ -256,6 +256,13 @@
             z-index: 20;
         }
 
+        #planet-list-wrap {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
         /* PLANET LIST */
         #planet-list-wrap {
             --chip-size: 18px;
@@ -272,7 +279,6 @@
             overflow-x: auto;
             z-index: 15;
             overflow: hidden; 
-}
         }
 
         #planet-list-wrap .planet-chip-btn {
@@ -563,7 +569,7 @@
             }
 
             #side-controls {
-                inset: auto 10px 90px;
+                inset: auto 10px 120px;
                 flex-direction: column;
                 gap: 12px;
             }
@@ -571,6 +577,10 @@
             details.side-panel {
                 width: 100%;
                 max-width: 320px;
+            }
+
+            #planet-list-wrap {
+                bottom: 20px;
             }
 
             .modal { width: 85vw; }
@@ -623,7 +633,7 @@
         <div id="modal-overlay" onclick="closePanel('global-panel')"></div>
         
         <div id="side-controls">
-            <details class="side-panel" id="notes-panel" open>
+            <details class="side-panel" id="notes-panel">
                 <summary>NOTES</summary>
                 <div class="side-panel-content">
                     <button id="btn-play" class="btn-text btn-fixed" onclick="togglePlay()">PLAY</button>
@@ -640,15 +650,10 @@
                     <button class="btn-text" onclick="syncRPMs()">SYNC</button>
                     <button class="btn-text" onclick="evenSpacePlanets()">EVEN</button>
 
-                    <div id="planet-list-wrap">
-                        <button class="planet-chip-btn" onclick="addPlanet()">+</button>
-                        <div id="planet-list"></div>
-                        <button class="planet-chip-btn" onclick="deleteLastPlanet()">-</button>
-                    </div>
                 </div>
             </details>
 
-            <details class="side-panel" id="gates-panel" open>
+            <details class="side-panel" id="gates-panel">
                 <summary>GATES</summary>
                 <div class="side-panel-content">
                     <div class="macro-slider-container">
@@ -682,6 +687,12 @@
                     <button id="btn-gate-dir" class="btn-text" onclick="toggleGateSpinDirection()">CW</button>
                 </div>
             </details>
+        </div>
+
+        <div id="planet-list-wrap">
+            <button class="planet-chip-btn" onclick="addPlanet()">+</button>
+            <div id="planet-list"></div>
+            <button class="planet-chip-btn" onclick="deleteLastPlanet()">-</button>
         </div>
 
         <div id="planet-panel" class="modal">
@@ -1187,6 +1198,7 @@ for(let i=0; i<4; i++) {
 const canvas = document.getElementById('mainCanvas');
 const ctx = canvas.getContext('2d');
 let canvasW, canvasH, centerX, centerY;
+let isMobileLayout = null;
 
 function resize() {
     canvasW = window.innerWidth;
@@ -1196,10 +1208,22 @@ function resize() {
     centerX = canvasW/2;
     centerY = canvasH/2;
     const dim = Math.min(canvasW, canvasH);
-    STATE.orbitRadius = dim * (dim < 600 ? 0.35 : 0.35);
+    STATE.orbitRadius = dim * (dim < 600 ? 0.25 : 0.35);
+    updateSidePanelsForViewport();
 }
 window.addEventListener('resize', resize);
 resize();
+
+function updateSidePanelsForViewport() {
+    const isMobile = window.innerWidth <= 768;
+    if (isMobileLayout === isMobile) return;
+    isMobileLayout = isMobile;
+    const notesPanel = document.getElementById('notes-panel');
+    const gatesPanel = document.getElementById('gates-panel');
+    if (!notesPanel || !gatesPanel) return;
+    notesPanel.open = !isMobile;
+    gatesPanel.open = !isMobile;
+}
 
 function toggleAudio() { AudioEngine.toggle(); }
 
