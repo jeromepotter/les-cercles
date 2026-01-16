@@ -2630,7 +2630,8 @@ function loop(time) {
                 }
             }
             if (STATE.orbSettings.triggerMode === 'orb-circle') {
-                if (orb.pitch && orb.cooldown <= 0) {
+                if (!orb.pitch) assignOrbPitch(orb);
+                if (orb.cooldown <= 0) {
                     playOrbNote(orb);
                     orb.cooldown = 0.2;
                 }
