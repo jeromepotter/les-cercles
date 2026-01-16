@@ -199,7 +199,7 @@
 
         .btn-text {
             background: transparent;
-            border: 1px solid transparent;
+            border: 1px solid rgba(0,0,0,0.2);
             border-radius: 4px;
             font-weight: 600;
             color: var(--ink-color);
@@ -240,6 +240,8 @@
             padding: 10px 12px;
             background: rgba(255,255,255,0.6);
             backdrop-filter: blur(6px);
+            display: flex;
+            flex-direction: column;
         }
 
         details.side-panel summary {
@@ -265,6 +267,7 @@
             display: flex;
             flex-direction: column;
             gap: 10px;
+            flex: 1;
         }
 
         .panel-button-row {
@@ -272,6 +275,52 @@
             gap: 8px;
             flex-wrap: wrap;
             justify-content: center;
+        }
+
+        .panel-button-row .btn-text {
+            flex: 1 1 0;
+        }
+
+        summary.panel-header-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            margin-bottom: 8px;
+            border: 1px solid rgba(0,0,0,0.08);
+            border-radius: 999px;
+            padding: 6px 10px;
+            background: rgba(255,255,255,0.6);
+        }
+
+        .panel-title {
+            flex: 1 1 0;
+            display: flex;
+            justify-content: center;
+        }
+
+        summary.panel-header-row .btn-text {
+            flex: 1 1 0;
+            border-radius: 999px;
+        }
+
+        .panel-button-row .btn-text,
+        .control-buttons-row .btn-text {
+            border: 1px solid rgba(0,0,0,0.2);
+            border-radius: 999px;
+        }
+
+        .panel-slider-row {
+            display: flex;
+            gap: 10px;
+            width: 100%;
+        }
+
+        .panel-slider-row .macro-slider-container {
+            flex: 1 1 0;
+        }
+
+        .panel-slider-row .slider-pill {
+            width: 100%;
         }
 
         #controls-footer {
@@ -282,7 +331,7 @@
             align-items: center;
             justify-content: flex-start;
             gap: 12px;
-            padding: 10px 20px 20px;
+            padding: 10px 20px 32px;
             box-sizing: border-box;
         }
 
@@ -291,9 +340,16 @@
             max-width: 1100px;
             display: flex;
             justify-content: center;
-            align-items: flex-start;
-            gap: 16px;
+            align-items: stretch;
+            gap: 20px;
             pointer-events: auto;
+            height: 100%;
+        }
+
+        #side-controls > details.side-panel {
+            flex: 1 1 0;
+            min-width: 0;
+            height: 100%;
         }
 
         #planet-list-wrap {
@@ -631,12 +687,12 @@
 
             #controls-footer {
                 height: auto;
-                padding: 10px 16px 24px;
+                padding: 10px 20px 20px;
             }
 
             #side-controls {
                 flex-direction: column;
-                gap: 12px;
+                gap: 20px;
                 width: 100%;
                 margin-bottom: 20px;
             }
@@ -644,6 +700,7 @@
             details.side-panel {
                 width: 100%;
                 max-width: 320px;
+                margin: 0;
             }
 
             #planet-list-wrap {
@@ -712,20 +769,21 @@
 
             <div id="side-controls">
                 <details class="side-panel" id="notes-panel">
-                    <summary>NOTES</summary>
+                    <summary class="panel-header-row">
+                        <span class="panel-title">NOTES</span>
+                        <button id="btn-dir" class="btn-text" onclick="event.stopPropagation(); toggleDirection()">CCW</button>
+                        <button class="btn-text" onclick="event.stopPropagation(); syncRPMs()">SYNC</button>
+                        <button class="btn-text" onclick="event.stopPropagation(); evenSpacePlanets()">EVEN</button>
+                        <button id="btn-play" class="btn-text btn-fixed" onclick="event.stopPropagation(); togglePlay()">PLAY</button>
+                    </summary>
                     <div class="side-panel-content">
-                        <div class="panel-button-row">
-                            <button id="btn-dir" class="btn-text" onclick="toggleDirection()">CCW</button>
-                            <button class="btn-text" onclick="syncRPMs()">SYNC</button>
-                            <button class="btn-text" onclick="evenSpacePlanets()">EVEN</button>
-                            <button id="btn-play" class="btn-text btn-fixed" onclick="togglePlay()">PLAY</button>
-                        </div>
-
-                        <div class="macro-slider-container">
-                            <div class="slider-pill">
-                                <span class="slider-pill__label">Speed</span>
-                                <span class="slider-pill__value" id="speed-value">1.0x</span>
-                                <input id="speed-range" type="range" min="0.1" max="3.0" step="0.1" value="1.0" data-value-target="speed-value" data-format="speed" oninput="updateGlobalSpeed(this.value); updateSliderValue(this)">
+                        <div class="panel-slider-row">
+                            <div class="macro-slider-container">
+                                <div class="slider-pill">
+                                    <span class="slider-pill__label">Speed</span>
+                                    <span class="slider-pill__value" id="speed-value">1.0x</span>
+                                    <input id="speed-range" type="range" min="0.1" max="3.0" step="0.1" value="1.0" data-value-target="speed-value" data-format="speed" oninput="updateGlobalSpeed(this.value); updateSliderValue(this)">
+                                </div>
                             </div>
                         </div>
 
@@ -733,40 +791,43 @@
                 </details>
 
                 <details class="side-panel" id="gates-panel">
-                    <summary>GATES</summary>
+                    <summary class="panel-header-row">
+                        <span class="panel-title">GATES</span>
+                        <button id="btn-gate-play" class="btn-text btn-fixed" onclick="event.stopPropagation(); toggleGateSpin()">PLAY</button>
+                        <button class="btn-text" onclick="event.stopPropagation(); randomizeGateTranspose()">RND TRNS</button>
+                        <button class="btn-text" onclick="event.stopPropagation(); randomizeGateSpacing()">RND SPC</button>
+                        <button id="btn-gate-dir" class="btn-text" onclick="event.stopPropagation(); toggleGateSpinDirection()">CW</button>
+                    </summary>
                     <div class="side-panel-content">
-                        <div class="panel-button-row">
-                            <button id="btn-gate-play" class="btn-text btn-fixed" onclick="toggleGateSpin()">PLAY</button>
-                            <button class="btn-text" onclick="randomizeGateTranspose()">RND TRNS</button>
-                            <button class="btn-text" onclick="randomizeGateSpacing()">RND SPC</button>
-                            <button id="btn-gate-dir" class="btn-text" onclick="toggleGateSpinDirection()">CW</button>
-                        </div>
+                        <div class="panel-slider-row">
+                            <div class="macro-slider-container">
+                                <div class="slider-pill">
+                                    <span class="slider-pill__label">Gates</span>
+                                    <span class="slider-pill__value" id="gate-label">1</span>
+                                    <input id="gate-range" type="range" min="1" max="32" step="1" value="1" data-value-target="gate-label" data-format="int" oninput="updateGates(this.value); updateSliderValue(this)">
+                                </div>
+                            </div>
 
-                        <div class="macro-slider-container">
-                            <div class="slider-pill">
-                                <span class="slider-pill__label">Gates</span>
-                                <span class="slider-pill__value" id="gate-label">1</span>
-                                <input id="gate-range" type="range" min="1" max="32" step="1" value="1" data-value-target="gate-label" data-format="int" oninput="updateGates(this.value); updateSliderValue(this)">
+                            <div class="macro-slider-container">
+                                <div class="slider-pill">
+                                    <span class="slider-pill__label">Gate Speed</span>
+                                    <span class="slider-pill__value" id="gate-speed-label">10 RPM</span>
+                                    <input id="gate-speed-range" type="range" min="1" max="60" step="1" value="10" data-value-target="gate-speed-label" data-format="rpm" oninput="updateGateSpinSpeed(this.value); updateSliderValue(this)">
+                                </div>
                             </div>
                         </div>
 
-                        <div class="macro-slider-container">
-                            <div class="slider-pill">
-                                <span class="slider-pill__label">Gate Speed</span>
-                                <span class="slider-pill__value" id="gate-speed-label">10 RPM</span>
-                                <input id="gate-speed-range" type="range" min="1" max="60" step="1" value="10" data-value-target="gate-speed-label" data-format="rpm" oninput="updateGateSpinSpeed(this.value); updateSliderValue(this)">
-                            </div>
-                        </div>
-
-                        <div class="macro-slider-container">
-                            <div class="slider-pill">
-                                <span class="slider-pill__label">Transpose</span>
-                                <span class="slider-pill__value" id="transpose-label">0</span>
-                                <input id="transpose-range" type="range" min="-7" max="7" step="1" value="0" data-value-target="transpose-label" data-format="signed" oninput="updateGlobalTranspose(this.value); updateSliderValue(this)">
-                            </div>
-                            <div class="control-buttons-row">
-                                <button class="btn-text btn-small" onclick="adjustGlobalTranspose(-1)">-1</button>
-                                <button class="btn-text btn-small" onclick="adjustGlobalTranspose(1)">+1</button>
+                        <div class="panel-slider-row">
+                            <div class="macro-slider-container">
+                                <div class="slider-pill">
+                                    <span class="slider-pill__label">Transpose</span>
+                                    <span class="slider-pill__value" id="transpose-label">0</span>
+                                    <input id="transpose-range" type="range" min="-7" max="7" step="1" value="0" data-value-target="transpose-label" data-format="signed" oninput="updateGlobalTranspose(this.value); updateSliderValue(this)">
+                                </div>
+                                <div class="control-buttons-row">
+                                    <button class="btn-text btn-small" onclick="adjustGlobalTranspose(-1)">-1</button>
+                                    <button class="btn-text btn-small" onclick="adjustGlobalTranspose(1)">+1</button>
+                                </div>
                             </div>
                         </div>
 
@@ -774,7 +835,10 @@
                 </details>
 
                 <details class="side-panel" id="orbs-panel">
-                    <summary>ORBS</summary>
+                    <summary class="panel-header-row">
+                        <span class="panel-title">ORBS</span>
+                        <button class="btn-text" onclick="event.stopPropagation(); toggleSlingshotArm()">ARM ORB</button>
+                    </summary>
                     <div class="side-panel-content">
                         <div class="control-row">
                             <label>Trigger</label>
@@ -788,7 +852,6 @@
                             <label>Collision</label>
                             <input type="checkbox" id="o-collision-inline">
                         </div>
-                        <button class="btn-text" onclick="toggleSlingshotArm()">ARM ORB</button>
                     </div>
                 </details>
             </div>
