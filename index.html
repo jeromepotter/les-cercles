@@ -610,6 +610,36 @@
         }
         input[type=checkbox] { width: auto; }
 
+        input.collision-toggle {
+            appearance: none;
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            border: 1px solid var(--ink-color);
+            border-radius: 2px;
+            background: var(--bg-color);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+
+        input.collision-toggle::after {
+            content: "✕";
+            font-size: 14px;
+            color: #000;
+            opacity: 0;
+        }
+
+        input.collision-toggle:checked::after {
+            opacity: 1;
+        }
+
+        input.collision-toggle:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
         .btn-group { display: flex; gap: 10px; margin-top: 25px; }
         .btn-full { flex: 1; padding: 12px; cursor: pointer; border: 1px solid #ccc; background: var(--bg-color); color: var(--ink-color); font-weight: 600; font-size: 0.9em; border-radius: 3px; }
         .btn-danger { color: #d00; border-color: #ecc; }
@@ -806,10 +836,10 @@
                 <details class="side-panel" id="notes-panel">
                     <summary class="panel-header-row">
                         <span class="panel-title">NOTES</span>
-                        <button id="btn-dir" class="btn-text" onclick="event.stopPropagation(); toggleDirection()">CCW</button>
+                        <button id="btn-play" class="btn-text btn-fixed" onclick="event.stopPropagation(); togglePlay()">PLAY</button>
+                        <button id="btn-dir" class="btn-text" onclick="event.stopPropagation(); toggleDirection()">CW</button>
                         <button class="btn-text" onclick="event.stopPropagation(); syncRPMs()">SYNC</button>
                         <button class="btn-text" onclick="event.stopPropagation(); evenSpacePlanets()">EVEN</button>
-                        <button id="btn-play" class="btn-text btn-fixed" onclick="event.stopPropagation(); togglePlay()">PLAY</button>
                     </summary>
                     <div class="side-panel-content">
                         <div class="panel-slider-row">
@@ -831,7 +861,7 @@
                         <button id="btn-gate-play" class="btn-text btn-fixed" onclick="event.stopPropagation(); toggleGateSpin()">PLAY</button>
                         <button class="btn-text" onclick="event.stopPropagation(); randomizeGateTranspose()">RND TRNS</button>
                         <button class="btn-text" onclick="event.stopPropagation(); randomizeGateSpacing()">RND SPC</button>
-                        <button id="btn-gate-dir" class="btn-text" onclick="event.stopPropagation(); toggleGateSpinDirection()">CW</button>
+                        <button id="btn-gate-dir" class="btn-text" onclick="event.stopPropagation(); toggleGateSpinDirection()">CCW</button>
                     </summary>
                     <div class="side-panel-content">
                         <div class="panel-slider-row">
@@ -840,10 +870,6 @@
                                     <span class="slider-pill__label">Gates</span>
                                     <span class="slider-pill__value" id="gate-label">1</span>
                                     <input id="gate-range" type="range" min="1" max="32" step="1" value="1" data-value-target="gate-label" data-format="int" oninput="updateGates(this.value); updateSliderValue(this)">
-                                </div>
-                                <div class="control-buttons-row">
-                                    <button class="btn-text btn-small" onclick="event.stopPropagation(); adjustGateCount(-1)">-1</button>
-                                    <button class="btn-text btn-small" onclick="event.stopPropagation(); adjustGateCount(1)">+1</button>
                                 </div>
                             </div>
 
@@ -885,11 +911,13 @@
                                 <option value="notes">NOTES</option>
                                 <option value="gates">GATES</option>
                                 <option value="circle">CIRCLE</option>
+                                <option value="orb" data-requires-collision="true" disabled>ORB</option>
+                                <option value="orb-circle" data-requires-collision="true" disabled>ORB + CIRCLE</option>
                             </select>
                         </div>
                         <div class="control-row">
                             <label>Collision</label>
-                            <input type="checkbox" id="o-collision-inline">
+                            <input type="checkbox" id="o-collision-inline" class="collision-toggle">
                         </div>
                     </div>
                 </details>
@@ -948,11 +976,13 @@
                     <option value="notes">NOTES</option>
                     <option value="gates">GATES</option>
                     <option value="circle">CIRCLE</option>
+                    <option value="orb" data-requires-collision="true" disabled>ORB</option>
+                    <option value="orb-circle" data-requires-collision="true" disabled>ORB + CIRCLE</option>
                 </select>
             </div>
             <div class="control-row">
                 <label>Collision</label>
-                <input type="checkbox" id="o-collision">
+                <input type="checkbox" id="o-collision" class="collision-toggle">
             </div>
             <div class="btn-group">
                 <button class="btn-full" onclick="closePanel('orb-panel')">DONE</button>
@@ -1122,11 +1152,7 @@ function applyUndoSnapshot(snapshot) {
     document.getElementById('trigger-panel').style.display = 'none';
     document.getElementById('orb-panel').style.display = 'none';
 
-    const btn = document.getElementById('btn-dir');
-    const isCW = STATE.direction === 1;
-    btn.innerText = isCW ? "CW" : "CCW";
-    if (isCW) document.body.classList.add('dark-mode');
-    else document.body.classList.remove('dark-mode');
+    updateDirectionUI();
 
     const speedRange = document.getElementById('speed-range');
     if (speedRange) speedRange.value = STATE.globalSpeed;
@@ -1458,11 +1484,44 @@ function updateMasterVolume(value) {
     AudioEngine.setVolume(volume);
 }
 
+function getDirectionToggleLabel(direction) {
+    return direction === 1 ? "CCW" : "CW";
+}
+
+function updateDirectionUI() {
+    const btn = document.getElementById('btn-dir');
+    const isCW = STATE.direction === 1;
+    if (btn) btn.innerText = getDirectionToggleLabel(STATE.direction);
+    if (isCW) document.body.classList.add('dark-mode');
+    else document.body.classList.remove('dark-mode');
+}
+
+function updateOrbTriggerOptions() {
+    const triggerMode = STATE.orbSettings.triggerMode || 'notes';
+    const collisionEnabled = !!STATE.orbSettings.collision;
+    const selects = [document.getElementById('o-trigger'), document.getElementById('o-trigger-inline')];
+    selects.forEach((select) => {
+        if (!select) return;
+        select.querySelectorAll('option[data-requires-collision="true"]').forEach(option => {
+            option.disabled = !collisionEnabled;
+        });
+    });
+
+    if (!collisionEnabled && (triggerMode === 'orb' || triggerMode === 'orb-circle')) {
+        STATE.orbSettings.triggerMode = 'notes';
+    }
+
+    selects.forEach((select) => {
+        if (select) select.value = STATE.orbSettings.triggerMode;
+    });
+}
+
 function syncOrbInlineControls() {
     const triggerInline = document.getElementById('o-trigger-inline');
     const collisionInline = document.getElementById('o-collision-inline');
     if (triggerInline) triggerInline.value = STATE.orbSettings.triggerMode || 'notes';
     if (collisionInline) collisionInline.checked = !!STATE.orbSettings.collision;
+    updateOrbTriggerOptions();
 }
 
 function formatSliderValue(format, value) {
@@ -1538,7 +1597,7 @@ function updateGateSpinUI() {
     const btn = document.getElementById('btn-gate-play');
     if (btn) btn.innerText = STATE.gateSpinActive ? "PAUSE" : "PLAY";
     const dirBtn = document.getElementById('btn-gate-dir');
-    if (dirBtn) dirBtn.innerText = STATE.gateSpinDirection === 1 ? "CW" : "CCW";
+    if (dirBtn) dirBtn.innerText = getDirectionToggleLabel(STATE.gateSpinDirection);
     const speedRange = document.getElementById('gate-speed-range');
     if (speedRange) {
         speedRange.value = STATE.gateSpinRPM;
@@ -1563,11 +1622,7 @@ function togglePlay() {
 function toggleDirection() {
     pushUndoState();
     STATE.direction *= -1;
-    const btn = document.getElementById('btn-dir');
-    const isCW = STATE.direction === 1;
-    btn.innerText = isCW ? "CW" : "CCW";
-    if(isCW) document.body.classList.add('dark-mode');
-    else document.body.classList.remove('dark-mode');
+    updateDirectionUI();
 }
 
 function toggleGateSpin() {
@@ -1804,10 +1859,7 @@ function handleFileLoad(input) {
             STATE.globalSpeed = data.globalSpeed;
             STATE.gateTranspose = data.gateTranspose || 0;
             STATE.direction = data.direction || -1; 
-            const isCW = STATE.direction === 1;
-            document.getElementById('btn-dir').innerText = isCW ? "CW" : "CCW";
-            if(isCW) document.body.classList.add('dark-mode');
-            else document.body.classList.remove('dark-mode');
+            updateDirectionUI();
             if (data.gateSpinRPM) STATE.gateSpinRPM = data.gateSpinRPM;
             if (data.gateSpinDirection) STATE.gateSpinDirection = data.gateSpinDirection;
             if (!data.gateSpinDirection) STATE.gateSpinDirection = STATE.direction * -1;
@@ -2146,6 +2198,7 @@ if (orbTriggerInline) {
         STATE.orbSettings.triggerMode = e.target.value;
         const modalTrigger = document.getElementById('o-trigger');
         if (modalTrigger) modalTrigger.value = e.target.value;
+        updateOrbTriggerOptions();
     };
 }
 
@@ -2155,6 +2208,7 @@ if (orbCollisionInline) {
         STATE.orbSettings.collision = e.target.checked;
         const modalCollision = document.getElementById('o-collision');
         if (modalCollision) modalCollision.checked = e.target.checked;
+        updateOrbTriggerOptions();
     };
 }
 
@@ -2463,7 +2517,7 @@ function handleEnd() {
                 vx: dx * power,
                 vy: dy * power,
                 color: getRandomPaletteColor(),
-                pitch: STATE.orbSettings.triggerMode === 'notes'
+                pitch: ['notes', 'orb', 'orb-circle'].includes(STATE.orbSettings.triggerMode)
                     ? null
                     : MusicTheory.getRandomNoteInRange(STATE.root, STATE.scale, 2, 5),
                 cooldown: 0,
@@ -2575,6 +2629,12 @@ function loop(time) {
                     orb.cooldown = 0.2;
                 }
             }
+            if (STATE.orbSettings.triggerMode === 'orb-circle') {
+                if (orb.pitch && orb.cooldown <= 0) {
+                    playOrbNote(orb);
+                    orb.cooldown = 0.2;
+                }
+            }
         }
 
         if (STATE.orbSettings.triggerMode === 'gates') {
@@ -2613,6 +2673,9 @@ function loop(time) {
     });
 
     if (STATE.orbSettings.collision) {
+        const orbTriggerMode = STATE.orbSettings.triggerMode;
+        const isOrbCollisionMode = orbTriggerMode === 'orb' || orbTriggerMode === 'orb-circle';
+        const shouldAssignPitchOnCollision = isOrbCollisionMode || orbTriggerMode === 'circle';
         for (let i = 0; i < STATE.projectiles.length; i++) {
             const orbA = STATE.projectiles[i];
             for (let j = i + 1; j < STATE.projectiles.length; j++) {
@@ -2639,9 +2702,35 @@ function loop(time) {
                 orbA.y -= ny * overlap;
                 orbB.x += nx * overlap;
                 orbB.y += ny * overlap;
-                if (STATE.orbSettings.triggerMode !== 'notes') {
-                    assignOrbPitch(orbA);
-                    assignOrbPitch(orbB);
+                if (shouldAssignPitchOnCollision) {
+                    if (orbTriggerMode === 'orb') {
+                        assignOrbPitch(orbA);
+                        assignOrbPitch(orbB);
+                        if (orbA.cooldown <= 0) {
+                            playOrbNote(orbA);
+                            orbA.cooldown = 0.2;
+                        }
+                        if (orbB.cooldown <= 0) {
+                            playOrbNote(orbB);
+                            orbB.cooldown = 0.2;
+                        }
+                    } else if (orbTriggerMode === 'orb-circle') {
+                        if (!orbA.pitch) assignOrbPitch(orbA);
+                        if (!orbB.pitch) assignOrbPitch(orbB);
+                        if (orbA.cooldown <= 0) {
+                            playOrbNote(orbA);
+                            orbA.cooldown = 0.2;
+                        }
+                        if (orbB.cooldown <= 0) {
+                            playOrbNote(orbB);
+                            orbB.cooldown = 0.2;
+                        }
+                        assignOrbPitch(orbA);
+                        assignOrbPitch(orbB);
+                    } else {
+                        assignOrbPitch(orbA);
+                        assignOrbPitch(orbB);
+                    }
                 }
                 orbA.color = getRandomPaletteColor();
                 orbB.color = getRandomPaletteColor();
