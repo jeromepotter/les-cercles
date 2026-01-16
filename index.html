@@ -278,17 +278,17 @@ body.dark-mode select {
             margin-top: 6px;
         }
 
-        details.side-panel {
-            pointer-events: auto;
-            width: 260px;
-            border: 1px solid var(--panel-border-soft);
-            border-radius: 0;
-            padding: 10px 12px;
-            background: var(--panel-surface);
-            backdrop-filter: blur(6px);
-            display: flex;
-            flex-direction: column;
-        }
+       .side-panel {
+    pointer-events: auto;
+    width: 260px;
+    border: 1px solid var(--panel-border-soft);
+    border-radius: 0;
+    padding: 10px 12px;
+    background: var(--panel-surface);
+    backdrop-filter: blur(6px);
+    display: flex;
+    flex-direction: column;
+}
 
         details.side-panel summary {
             list-style: none;
@@ -316,14 +316,14 @@ body.dark-mode select {
             content: "";
         }
 
-        .side-panel-content {
-            margin-top: 10px;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            flex: 1;
-            padding-bottom: 6px;
-        }
+     .side-panel-content {
+    margin-top: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    flex: 1;
+    padding-bottom: 6px;
+}
 
         .panel-button-row {
             display: flex;
@@ -336,19 +336,18 @@ body.dark-mode select {
             flex: 1 1 0;
         }
 
-        summary.panel-header-row {
-            display: flex;
-            gap: 8px;
-            align-items: center;
-            margin-bottom: 8px;
-            border: none;
-            border-radius: 0;
-            padding: 6px 10px;
-            background: transparent;
-            flex-wrap: wrap;
-            row-gap: 6px;
-        }
-
+   .panel-header-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 8px;
+    border: none;
+    border-radius: 0;
+    padding: 6px 10px;
+    background: transparent;
+    flex-wrap: wrap;
+    row-gap: 6px;
+}
         .panel-title-row {
             flex: 1 1 100%;
             display: flex;
@@ -441,10 +440,10 @@ summary.panel-header-row .panel-caret {
             height: 100%;
         }
 
-        #side-controls > details.side-panel {
-            flex: 1 1 0;
-            min-width: 0;
-        }
+       #side-controls > .side-panel {
+    flex: 1 1 0;
+    min-width: 0;
+}
 
         #planet-list-wrap {
             position: static;
@@ -913,137 +912,129 @@ summary.panel-header-row .panel-caret {
                 <button class="planet-chip-btn" onclick="deleteLastPlanet()">-</button>
             </div>
 
-            <div id="side-controls">
-                <details class="side-panel" id="notes-panel">
-                    <summary class="panel-header-row">
-                        <span class="panel-title-row">
-                            <span class="panel-title">NOTES</span>
-                            <span class="panel-caret" aria-hidden="true"></span>
-                        </span>
-                        <button id="btn-play" class="btn-text btn-fixed" onclick="event.stopPropagation(); togglePlay()">PLAY</button>
-                        <button id="btn-dir" class="btn-text" onclick="event.stopPropagation(); toggleDirection()">CW</button>
-                        <button class="btn-text" onclick="event.stopPropagation(); syncRPMs()">SYNC</button>
-                        <button class="btn-text" onclick="event.stopPropagation(); evenSpacePlanets()">EVEN</button>
-                    </summary>
-                    <div class="side-panel-content">
-                        <div class="panel-slider-row">
-                            <div class="macro-slider-container">
-                                <div class="slider-pill">
-                                    <span class="slider-pill__label">Speed</span>
-                                    <span class="slider-pill__value" id="speed-value">1.0x</span>
-                                    <input id="speed-range" type="range" min="0.1" max="3.0" step="0.1" value="1.0" data-value-target="speed-value" data-format="speed" oninput="updateGlobalSpeed(this.value); updateSliderValue(this)">
-                                </div>
-                            </div>
-                        </div>
-                        <div class="panel-slider-row">
-                            <div class="macro-slider-container">
-                                <div class="slider-pill">
-                                    <span class="slider-pill__label">Volume</span>
-                                    <span class="slider-pill__value" id="notes-volume-value">100%</span>
-                                    <input id="notes-volume-range" type="range" min="0" max="2" step="0.01" value="1" data-value-target="notes-volume-value" data-format="percent" oninput="updateMasterVolume(this.value); updateSliderValue(this)">
-                                </div>
-                            </div>
-                        </div>
-
-                    </div>
-                </details>
-
-                <details class="side-panel" id="gates-panel">
-                    <summary class="panel-header-row">
-                        <span class="panel-title-row">
-                            <span class="panel-title">GATES</span>
-                            <span class="panel-caret" aria-hidden="true"></span>
-                        </span>
-                        <button id="btn-gate-play" class="btn-text btn-fixed" onclick="event.stopPropagation(); toggleGateSpin()">PLAY</button>
-                        <button class="btn-text" onclick="event.stopPropagation(); randomizeGateTranspose()">RND TRNS</button>
-                        <button class="btn-text" onclick="event.stopPropagation(); randomizeGateSpacing()">RND SPC</button>
-                        <button id="btn-gate-dir" class="btn-text" onclick="event.stopPropagation(); toggleGateSpinDirection()">CCW</button>
-                    </summary>
-                    <div class="side-panel-content">
-                        <div class="panel-slider-row">
-                            <div class="macro-slider-container">
-                                <div class="slider-pill">
-                                    <span class="slider-pill__label">Gates</span>
-                                    <span class="slider-pill__value" id="gate-label">1</span>
-                                    <input id="gate-range" type="range" min="1" max="32" step="1" value="1" data-value-target="gate-label" data-format="int" oninput="updateGates(this.value); updateSliderValue(this)">
-                                </div>
-                            </div>
-
-                            <div class="macro-slider-container">
-                                <div class="slider-pill">
-                                    <span class="slider-pill__label">Gate Speed</span>
-                                    <span class="slider-pill__value" id="gate-speed-label">10 RPM</span>
-                                    <input id="gate-speed-range" type="range" min="1" max="60" step="1" value="10" data-value-target="gate-speed-label" data-format="rpm" oninput="updateGateSpinSpeed(this.value); updateSliderValue(this)">
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="panel-slider-row">
-                            <div class="macro-slider-container">
-                                <div class="slider-pill">
-                                    <span class="slider-pill__label">Transpose</span>
-                                    <span class="slider-pill__value" id="transpose-label">0</span>
-                                    <input id="transpose-range" type="range" min="-7" max="7" step="1" value="0" data-value-target="transpose-label" data-format="signed" oninput="updateGlobalTranspose(this.value); updateSliderValue(this)">
-                                </div>
-                                <div class="control-buttons-row">
-                                    <button class="btn-text btn-small" onclick="adjustGlobalTranspose(-1)">-1</button>
-                                    <button class="btn-text btn-small" onclick="adjustGlobalTranspose(1)">+1</button>
-                                </div>
-                            </div>
-                        </div>
-
-                    </div>
-                </details>
-
-               <details class="side-panel" id="orbs-panel">
-    <summary class="panel-header-row">
-        <span class="panel-title-row">
-            <span class="panel-title">ORBS</span>
-            <span class="panel-caret" aria-hidden="true"></span>
-        </span>
-        <button class="btn-text" onclick="event.stopPropagation(); toggleSlingshotArm()">ARM ORB</button>
-        <button class="btn-text" onclick="event.stopPropagation(); removeAllOrbs()">CLEAR</button>
-        <button class="btn-text" onclick="event.stopPropagation(); randomizeOrbSizes()">RND SIZE</button>
-    </summary>
-
-    <div class="side-panel-content">
-        <div class="control-row-split">
-            <div class="control-group-inline">
-                <label>Trigger</label>
-                <select id="o-trigger-inline">
-                    <option value="notes">NOTES</option>
-                    <option value="gates">GATES</option>
-                    <option value="circle">CIRCLE</option>
-                    <option value="orb" data-requires-collision="true" disabled>ORB</option>
-                    <option value="orb-circle" data-requires-collision="true" disabled>ORB + CIRCLE</option>
-                </select>
-            </div>
-            <div class="control-group-inline">
-                <label>Collision</label>
-                <input type="checkbox" id="o-collision-inline" class="collision-toggle">
-            </div>
+           <div id="side-controls">
+    <div class="side-panel" id="notes-panel">
+        <div class="panel-header-row">
+            <span class="panel-title-row">
+                <span class="panel-title">NOTES</span>
+            </span>
+            <button id="btn-play" class="btn-text btn-fixed" onclick="event.stopPropagation(); togglePlay()">PLAY</button>
+            <button id="btn-dir" class="btn-text" onclick="event.stopPropagation(); toggleDirection()">CW</button>
+            <button class="btn-text" onclick="event.stopPropagation(); syncRPMs()">SYNC</button>
+            <button class="btn-text" onclick="event.stopPropagation(); evenSpacePlanets()">EVEN</button>
         </div>
-
-        <div class="panel-slider-row">
-            <div class="macro-slider-container">
-                <div class="slider-pill slider-pill--compact">
-                    <span class="slider-pill__label">Size</span>
-                    <span class="slider-pill__value" id="o-size-label">1.00x</span>
-                    <input id="o-size-range" type="range" min="0" max="100" step="1" value="50" data-value-target="o-size-label" data-format="orb-size" oninput="updateOrbSizeFromSlider(this.value); updateSliderValue(this)">
+        <div class="side-panel-content">
+            <div class="panel-slider-row">
+                <div class="macro-slider-container">
+                    <div class="slider-pill">
+                        <span class="slider-pill__label">Speed</span>
+                        <span class="slider-pill__value" id="speed-value">1.0x</span>
+                        <input id="speed-range" type="range" min="0.1" max="3.0" step="0.1" value="1.0" data-value-target="speed-value" data-format="speed" oninput="updateGlobalSpeed(this.value); updateSliderValue(this)">
+                    </div>
                 </div>
             </div>
-        </div>
-        <div class="panel-slider-row">
-            <div class="macro-slider-container">
-                <div class="slider-pill slider-pill--compact">
-                    <span class="slider-pill__label">Volume</span>
-                    <span class="slider-pill__value" id="o-vol-label">70%</span>
-                    <input id="o-vol-range" type="range" min="0" max="1" step="0.01" value="0.7" data-value-target="o-vol-label" data-format="percent-100" oninput="updateOrbVolumeFromSlider(this.value); updateSliderValue(this)">
+            <div class="panel-slider-row">
+                <div class="macro-slider-container">
+                    <div class="slider-pill">
+                        <span class="slider-pill__label">Volume</span>
+                        <span class="slider-pill__value" id="notes-volume-value">100%</span>
+                        <input id="notes-volume-range" type="range" min="0" max="2" step="0.01" value="1" data-value-target="notes-volume-value" data-format="percent" oninput="updateMasterVolume(this.value); updateSliderValue(this)">
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-</details></div> </div>
+
+    <div class="side-panel" id="gates-panel">
+        <div class="panel-header-row">
+            <span class="panel-title-row">
+                <span class="panel-title">GATES</span>
+            </span>
+            <button id="btn-gate-play" class="btn-text btn-fixed" onclick="event.stopPropagation(); toggleGateSpin()">PLAY</button>
+            <button class="btn-text" onclick="event.stopPropagation(); randomizeGateTranspose()">RND TRNS</button>
+            <button class="btn-text" onclick="event.stopPropagation(); randomizeGateSpacing()">RND SPC</button>
+            <button id="btn-gate-dir" class="btn-text" onclick="event.stopPropagation(); toggleGateSpinDirection()">CCW</button>
+        </div>
+        <div class="side-panel-content">
+            <div class="panel-slider-row">
+                <div class="macro-slider-container">
+                    <div class="slider-pill">
+                        <span class="slider-pill__label">Gates</span>
+                        <span class="slider-pill__value" id="gate-label">1</span>
+                        <input id="gate-range" type="range" min="1" max="32" step="1" value="1" data-value-target="gate-label" data-format="int" oninput="updateGates(this.value); updateSliderValue(this)">
+                    </div>
+                </div>
+                <div class="macro-slider-container">
+                    <div class="slider-pill">
+                        <span class="slider-pill__label">Gate Speed</span>
+                        <span class="slider-pill__value" id="gate-speed-label">10 RPM</span>
+                        <input id="gate-speed-range" type="range" min="1" max="60" step="1" value="10" data-value-target="gate-speed-label" data-format="rpm" oninput="updateGateSpinSpeed(this.value); updateSliderValue(this)">
+                    </div>
+                </div>
+            </div>
+            <div class="panel-slider-row">
+                <div class="macro-slider-container">
+                    <div class="slider-pill">
+                        <span class="slider-pill__label">Transpose</span>
+                        <span class="slider-pill__value" id="transpose-label">0</span>
+                        <input id="transpose-range" type="range" min="-7" max="7" step="1" value="0" data-value-target="transpose-label" data-format="signed" oninput="updateGlobalTranspose(this.value); updateSliderValue(this)">
+                    </div>
+                    <div class="control-buttons-row">
+                        <button class="btn-text btn-small" onclick="adjustGlobalTranspose(-1)">-1</button>
+                        <button class="btn-text btn-small" onclick="adjustGlobalTranspose(1)">+1</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="side-panel" id="orbs-panel">
+        <div class="panel-header-row">
+            <span class="panel-title-row">
+                <span class="panel-title">ORBS</span>
+            </span>
+            <button class="btn-text" onclick="event.stopPropagation(); toggleSlingshotArm()">ARM ORB</button>
+            <button class="btn-text" onclick="event.stopPropagation(); removeAllOrbs()">CLEAR</button>
+            <button class="btn-text" onclick="event.stopPropagation(); randomizeOrbSizes()">RND SIZE</button>
+        </div>
+        <div class="side-panel-content">
+            <div class="control-row-split">
+                <div class="control-group-inline">
+                    <label>Trigger</label>
+                    <select id="o-trigger-inline">
+                        <option value="notes">NOTES</option>
+                        <option value="gates">GATES</option>
+                        <option value="circle">CIRCLE</option>
+                        <option value="orb" data-requires-collision="true" disabled>ORB</option>
+                        <option value="orb-circle" data-requires-collision="true" disabled>ORB + CIRCLE</option>
+                    </select>
+                </div>
+                <div class="control-group-inline">
+                    <label>Collision</label>
+                    <input type="checkbox" id="o-collision-inline" class="collision-toggle">
+                </div>
+            </div>
+            <div class="panel-slider-row">
+                <div class="macro-slider-container">
+                    <div class="slider-pill slider-pill--compact">
+                        <span class="slider-pill__label">Size</span>
+                        <span class="slider-pill__value" id="o-size-label">1.00x</span>
+                        <input id="o-size-range" type="range" min="0" max="100" step="1" value="50" data-value-target="o-size-label" data-format="orb-size" oninput="updateOrbSizeFromSlider(this.value); updateSliderValue(this)">
+                    </div>
+                </div>
+            </div>
+            <div class="panel-slider-row">
+                <div class="macro-slider-container">
+                    <div class="slider-pill slider-pill--compact">
+                        <span class="slider-pill__label">Volume</span>
+                        <span class="slider-pill__value" id="o-vol-label">70%</span>
+                        <input id="o-vol-range" type="range" min="0" max="1" step="0.01" value="0.7" data-value-target="o-vol-label" data-format="percent-100" oninput="updateOrbVolumeFromSlider(this.value); updateSliderValue(this)">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
         <div id="planet-panel" class="modal">
             <div class="control-row">
