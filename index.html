@@ -282,6 +282,9 @@
             flex-direction: column;
             gap: 10px;
             flex: 1;
+            min-height: 0;
+            overflow-y: auto;
+            padding-bottom: 6px;
         }
 
         .panel-button-row {
@@ -308,12 +311,19 @@
             row-gap: 6px;
         }
 
-        .panel-title {
+        .panel-title-row {
             flex: 1 1 100%;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .panel-title {
             display: flex;
             justify-content: flex-start;
             text-align: left;
             padding-left: 6px;
+            letter-spacing: 1px;
         }
 
         summary.panel-header-row .btn-text {
@@ -323,20 +333,19 @@
 
         summary.panel-header-row .panel-caret {
             margin-left: auto;
-            font-size: 0.75em;
-            font-weight: 300;
-            opacity: 0.6;
-            letter-spacing: 0.5px;
+            font-size: 0.85em;
+            font-weight: 400;
+            opacity: 0.7;
             line-height: 1;
             user-select: none;
         }
 
         details.side-panel summary.panel-header-row .panel-caret::before {
-            content: "˅";
+            content: "▾";
         }
 
         details.side-panel[open] summary.panel-header-row .panel-caret::before {
-            content: "˄";
+            content: "▴";
         }
 
         .panel-button-row .btn-text,
@@ -367,9 +376,9 @@
             align-items: center;
             justify-content: flex-start;
             gap: 12px;
-            padding: 6px 20px 32px;
+            padding: 20px 20px 32px;
             box-sizing: border-box;
-            margin-top: -40px;
+            margin-top: -10px;
         }
 
         #side-controls {
@@ -785,9 +794,9 @@
                 row-gap: 6px;
             }
 
-            summary.panel-header-row .panel-title {
+            summary.panel-header-row .panel-title-row {
                 flex: 1 1 100%;
-                justify-content: flex-start;
+                justify-content: space-between;
             }
 
             summary.panel-header-row .btn-text {
@@ -857,12 +866,14 @@
             <div id="side-controls">
                 <details class="side-panel" id="notes-panel">
                     <summary class="panel-header-row">
-                        <span class="panel-title">NOTES</span>
+                        <span class="panel-title-row">
+                            <span class="panel-title">NOTES</span>
+                            <span class="panel-caret" aria-hidden="true"></span>
+                        </span>
                         <button id="btn-play" class="btn-text btn-fixed" onclick="event.stopPropagation(); togglePlay()">PLAY</button>
                         <button id="btn-dir" class="btn-text" onclick="event.stopPropagation(); toggleDirection()">CW</button>
                         <button class="btn-text" onclick="event.stopPropagation(); syncRPMs()">SYNC</button>
                         <button class="btn-text" onclick="event.stopPropagation(); evenSpacePlanets()">EVEN</button>
-                        <span class="panel-caret" aria-hidden="true"></span>
                     </summary>
                     <div class="side-panel-content">
                         <div class="panel-slider-row">
@@ -889,12 +900,14 @@
 
                 <details class="side-panel" id="gates-panel">
                     <summary class="panel-header-row">
-                        <span class="panel-title">GATES</span>
+                        <span class="panel-title-row">
+                            <span class="panel-title">GATES</span>
+                            <span class="panel-caret" aria-hidden="true"></span>
+                        </span>
                         <button id="btn-gate-play" class="btn-text btn-fixed" onclick="event.stopPropagation(); toggleGateSpin()">PLAY</button>
                         <button class="btn-text" onclick="event.stopPropagation(); randomizeGateTranspose()">RND TRNS</button>
                         <button class="btn-text" onclick="event.stopPropagation(); randomizeGateSpacing()">RND SPC</button>
                         <button id="btn-gate-dir" class="btn-text" onclick="event.stopPropagation(); toggleGateSpinDirection()">CCW</button>
-                        <span class="panel-caret" aria-hidden="true"></span>
                     </summary>
                     <div class="side-panel-content">
                         <div class="panel-slider-row">
@@ -934,11 +947,13 @@
 
                 <details class="side-panel" id="orbs-panel">
                     <summary class="panel-header-row">
-                        <span class="panel-title">ORBS</span>
+                        <span class="panel-title-row">
+                            <span class="panel-title">ORBS</span>
+                            <span class="panel-caret" aria-hidden="true"></span>
+                        </span>
                         <button class="btn-text" onclick="event.stopPropagation(); toggleSlingshotArm()">ARM ORB</button>
                         <button class="btn-text" onclick="event.stopPropagation(); removeAllOrbs()">REMOVE ORBS</button>
                         <button class="btn-text" onclick="event.stopPropagation(); randomizeOrbSizes()">RANDOM SIZE</button>
-                        <span class="panel-caret" aria-hidden="true"></span>
                     </summary>
                     <div class="side-panel-content">
                         <div class="control-row">
