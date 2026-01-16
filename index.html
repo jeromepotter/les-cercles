@@ -47,6 +47,7 @@
             user-select: none;
             -webkit-user-select: none;
             transition: background-color 0.3s, color 0.3s;
+            touch-action: manipulation;
         }
 
         #game-container {
@@ -56,6 +57,7 @@
             display: flex;
             justify-content: center;
             align-items: center;
+            touch-action: manipulation;
         }
 
         canvas {
@@ -207,6 +209,7 @@
             letter-spacing: 1px;
             padding: 8px 10px; 
             white-space: nowrap;
+            -webkit-tap-highlight-color: transparent;
         }
         .btn-fixed {
             min-width: 64px;
@@ -249,6 +252,7 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
+            -webkit-tap-highlight-color: transparent;
         }
 
         details.side-panel summary::-webkit-details-marker {
@@ -609,7 +613,13 @@
             }
 
             #planet-list-wrap {
-                bottom: 20px;
+                bottom: 240px;
+            }
+
+            .side-panel-content {
+                max-height: 40vh;
+                overflow-y: auto;
+                -webkit-overflow-scrolling: touch;
             }
 
             .modal { width: 85vw; }
@@ -654,30 +664,18 @@
                     </div>
                 </div>
 
-                <details class="side-panel hud-orb-panel" id="orbs-panel">
-                    <summary>ORB</summary>
-                    <div class="side-panel-content">
-                        <div class="control-row">
-                            <label>Trigger</label>
-                            <select id="o-trigger-inline">
-                                <option value="notes">NOTES</option>
-                                <option value="gates">GATES</option>
-                                <option value="circle">CIRCLE</option>
-                            </select>
-                        </div>
-                        <div class="control-row">
-                            <label>Collision</label>
-                            <input type="checkbox" id="o-collision-inline">
-                        </div>
-                        <button class="btn-text" onclick="toggleSlingshotArm()">ARM ORB</button>
-                    </div>
-                </details>
             </div>
         </div>
 
         <canvas id="mainCanvas"></canvas>
         <div id="modal-overlay" onclick="closePanel('global-panel')"></div>
         
+        <div id="planet-list-wrap">
+            <button class="planet-chip-btn" onclick="addPlanet()">+</button>
+            <div id="planet-list"></div>
+            <button class="planet-chip-btn" onclick="deleteLastPlanet()">-</button>
+        </div>
+
         <div id="side-controls">
             <details class="side-panel" id="notes-panel">
                 <summary>NOTES</summary>
@@ -737,12 +735,25 @@
                     <button id="btn-gate-dir" class="btn-text" onclick="toggleGateSpinDirection()">CW</button>
                 </div>
             </details>
-        </div>
 
-        <div id="planet-list-wrap">
-            <button class="planet-chip-btn" onclick="addPlanet()">+</button>
-            <div id="planet-list"></div>
-            <button class="planet-chip-btn" onclick="deleteLastPlanet()">-</button>
+            <details class="side-panel" id="orbs-panel">
+                <summary>ORBS</summary>
+                <div class="side-panel-content">
+                    <div class="control-row">
+                        <label>Trigger</label>
+                        <select id="o-trigger-inline">
+                            <option value="notes">NOTES</option>
+                            <option value="gates">GATES</option>
+                            <option value="circle">CIRCLE</option>
+                        </select>
+                    </div>
+                    <div class="control-row">
+                        <label>Collision</label>
+                        <input type="checkbox" id="o-collision-inline">
+                    </div>
+                    <button class="btn-text" onclick="toggleSlingshotArm()">ARM ORB</button>
+                </div>
+            </details>
         </div>
 
         <div id="planet-panel" class="modal">
@@ -1270,9 +1281,11 @@ function updateSidePanelsForViewport() {
     isMobileLayout = isMobile;
     const notesPanel = document.getElementById('notes-panel');
     const gatesPanel = document.getElementById('gates-panel');
-    if (!notesPanel || !gatesPanel) return;
+    const orbsPanel = document.getElementById('orbs-panel');
+    if (!notesPanel || !gatesPanel || !orbsPanel) return;
     notesPanel.open = !isMobile;
     gatesPanel.open = !isMobile;
+    orbsPanel.open = !isMobile;
 }
 
 function toggleAudio() { AudioEngine.toggle(); }
@@ -1456,14 +1469,23 @@ function openGlobal() {
     const settingsButton = document.getElementById('settings-button');
     const container = document.getElementById('game-container');
     panel.style.display = 'block';
+    if (window.innerWidth <= 768) {
+        panel.style.top = '50%';
+        panel.style.left = '50%';
+        panel.style.transform = 'translate(-50%, -50%)';
+    } else {
+        panel.style.transform = 'none';
+    }
     if (panel && settingsButton && container) {
         const btnRect = settingsButton.getBoundingClientRect();
         const containerRect = container.getBoundingClientRect();
         const desiredTop = btnRect.bottom - containerRect.top + 8;
         const desiredLeft = btnRect.left - containerRect.left;
         const maxLeft = containerRect.width - panel.offsetWidth - 10;
-        panel.style.top = `${Math.max(10, desiredTop)}px`;
-        panel.style.left = `${Math.max(10, Math.min(desiredLeft, maxLeft))}px`;
+        if (window.innerWidth > 768) {
+            panel.style.top = `${Math.max(10, desiredTop)}px`;
+            panel.style.left = `${Math.max(10, Math.min(desiredLeft, maxLeft))}px`;
+        }
     }
     document.getElementById('modal-overlay').classList.add('active');
     refreshSliderDisplays();
@@ -2622,7 +2644,7 @@ function loop(time) {
     });
 }
 
-document.getElementById('start-overlay').addEventListener('click', () => {
+function initializeApp() {
     AudioEngine.init();
     MidiEngine.init();
     updatePlanetList();
@@ -2634,12 +2656,16 @@ document.getElementById('start-overlay').addEventListener('click', () => {
     updatePlayButton();
     updateGateSpinUI();
     requestAnimationFrame(loop);
+}
+
+document.getElementById('start-overlay').addEventListener('click', () => {
+    initializeApp();
 });
 
 // Touch to start overlay
 document.getElementById('start-overlay').addEventListener('touchstart', (e) => {
     e.preventDefault();
-    document.getElementById('start-overlay').click();
+    initializeApp();
 }, {passive: false});
 
 </script>
