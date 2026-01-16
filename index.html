@@ -627,7 +627,7 @@
         input.collision-toggle::after {
             content: "✕";
             font-size: 14px;
-            color: #000;
+            color: var(--ink-color);
             opacity: 0;
         }
 
@@ -851,6 +851,15 @@
                                 </div>
                             </div>
                         </div>
+                        <div class="panel-slider-row">
+                            <div class="macro-slider-container">
+                                <div class="slider-pill">
+                                    <span class="slider-pill__label">Volume</span>
+                                    <span class="slider-pill__value" id="notes-volume-value">100%</span>
+                                    <input id="notes-volume-range" type="range" min="0" max="2" step="0.01" value="1" data-value-target="notes-volume-value" data-format="percent" oninput="updateMasterVolume(this.value); updateSliderValue(this)">
+                                </div>
+                            </div>
+                        </div>
 
                     </div>
                 </details>
@@ -903,6 +912,8 @@
                     <summary class="panel-header-row">
                         <span class="panel-title">ORBS</span>
                         <button class="btn-text" onclick="event.stopPropagation(); toggleSlingshotArm()">ARM ORB</button>
+                        <button class="btn-text" onclick="event.stopPropagation(); removeAllOrbs()">REMOVE ORBS</button>
+                        <button class="btn-text" onclick="event.stopPropagation(); randomizeOrbSizes()">RANDOM SIZE</button>
                     </summary>
                     <div class="side-panel-content">
                         <div class="control-row">
@@ -926,8 +937,14 @@
                                     <span class="slider-pill__value" id="o-size-label">1.00x</span>
                                     <input id="o-size-range" type="range" min="0" max="100" step="1" value="50" data-value-target="o-size-label" data-format="orb-size" oninput="updateOrbSizeFromSlider(this.value); updateSliderValue(this)">
                                 </div>
-                                <div class="control-buttons-row">
-                                    <button class="btn-text btn-small" onclick="randomizeOrbSizes()">RANDOM SIZE</button>
+                            </div>
+                        </div>
+                        <div class="panel-slider-row">
+                            <div class="macro-slider-container">
+                                <div class="slider-pill slider-pill--compact">
+                                    <span class="slider-pill__label">Volume</span>
+                                    <span class="slider-pill__value" id="o-vol-label">70%</span>
+                                    <input id="o-vol-range" type="range" min="0" max="1" step="0.01" value="0.7" data-value-target="o-vol-label" data-format="percent-100" oninput="updateOrbVolumeFromSlider(this.value); updateSliderValue(this)">
                                 </div>
                             </div>
                         </div>
@@ -997,6 +1014,7 @@
                 <input type="checkbox" id="o-collision" class="collision-toggle">
             </div>
             <div class="btn-group">
+                <button class="btn-full btn-danger" onclick="deleteOrb()">REMOVE ORB</button>
                 <button class="btn-full" onclick="closePanel('orb-panel')">DONE</button>
             </div>
         </div>
@@ -1529,6 +1547,16 @@ function updateMasterVolume(value) {
     const volume = parseFloat(value) * 0.5;
     STATE.masterVolume = volume;
     AudioEngine.setVolume(volume);
+    const masterSlider = document.getElementById('volume-range');
+    const notesSlider = document.getElementById('notes-volume-range');
+    if (masterSlider && masterSlider.value !== value) {
+        masterSlider.value = value;
+        updateSliderValue(masterSlider);
+    }
+    if (notesSlider && notesSlider.value !== value) {
+        notesSlider.value = value;
+        updateSliderValue(notesSlider);
+    }
 }
 
 function getDirectionToggleLabel(direction) {
@@ -1570,6 +1598,7 @@ function syncOrbInlineControls() {
     if (collisionInline) collisionInline.checked = !!STATE.orbSettings.collision;
     updateOrbTriggerOptions();
     syncOrbSizeControls();
+    syncOrbVolumeControls();
 }
 
 function syncOrbSizeControls() {
@@ -1577,6 +1606,13 @@ function syncOrbSizeControls() {
     if (!sizeRange) return;
     sizeRange.value = getOrbSliderFromScale(STATE.orbSettings.size ?? 1);
     updateSliderValue(sizeRange);
+}
+
+function syncOrbVolumeControls() {
+    const volumeRange = document.getElementById('o-vol-range');
+    if (!volumeRange) return;
+    volumeRange.value = STATE.orbSettings.velocity ?? 0.7;
+    updateSliderValue(volumeRange);
 }
 
 function formatSliderValue(format, value) {
@@ -1633,11 +1669,13 @@ function updateSliderFill(input) {
 function refreshSliderDisplays() {
     const ids = [
         'volume-range',
+        'notes-volume-range',
         'speed-range',
         'gate-range',
         'transpose-range',
         'gate-speed-range',
         'o-size-range',
+        'o-vol-range',
         'p-rpm-range',
         'p-vol'
     ];
@@ -2104,6 +2142,20 @@ function deletePlanet() {
     closePanel('planet-panel');
 }
 
+function deleteOrb() {
+    if (!STATE.editingOrbId) return;
+    pushUndoState();
+    STATE.projectiles = STATE.projectiles.filter(orb => orb.id !== STATE.editingOrbId);
+    closePanel('orb-panel');
+}
+
+function removeAllOrbs() {
+    if (STATE.projectiles.length === 0) return;
+    pushUndoState();
+    STATE.projectiles = [];
+    closePanel('orb-panel');
+}
+
 function openTrigger(t) {
     closePanel('orb-panel');
     closePanel('planet-panel');
@@ -2115,10 +2167,10 @@ function openTrigger(t) {
     document.getElementById('trigger-panel').style.display = 'block';
 }
 
-function openOrbPanel() {
+function openOrbPanel(orb) {
     closePanel('planet-panel');
     closePanel('trigger-panel');
-    STATE.editingOrbId = null;
+    STATE.editingOrbId = orb ? orb.id : null;
     const panel = document.getElementById('orb-panel');
     const triggerSel = document.getElementById('o-trigger');
     const collisionToggle = document.getElementById('o-collision');
@@ -2315,6 +2367,29 @@ if (orbSizeRange) {
     orbSizeRange.addEventListener('pointerup', stopOrbSizeAdjust);
     orbSizeRange.addEventListener('touchend', stopOrbSizeAdjust, { passive: true });
     orbSizeRange.addEventListener('blur', stopOrbSizeAdjust);
+}
+
+let orbVolumeIsAdjusting = false;
+function updateOrbVolumeFromSlider(val) {
+    if (!orbVolumeIsAdjusting) {
+        pushUndoState();
+        orbVolumeIsAdjusting = true;
+    }
+    const volume = parseFloat(val);
+    if (Number.isNaN(volume)) return;
+    STATE.orbSettings.velocity = volume;
+    STATE.projectiles.forEach(orb => {
+        orb.velocity = volume;
+    });
+}
+
+const orbVolumeRange = document.getElementById('o-vol-range');
+if (orbVolumeRange) {
+    const stopOrbVolumeAdjust = () => { orbVolumeIsAdjusting = false; };
+    orbVolumeRange.addEventListener('change', stopOrbVolumeAdjust);
+    orbVolumeRange.addEventListener('pointerup', stopOrbVolumeAdjust);
+    orbVolumeRange.addEventListener('touchend', stopOrbVolumeAdjust, { passive: true });
+    orbVolumeRange.addEventListener('blur', stopOrbVolumeAdjust);
 }
 
 function updatePlanetRPM(inputVal) {
@@ -2649,7 +2724,7 @@ function handleEnd() {
         if (duration < 300) { 
             if (dragTarget.type === 'trigger') openTrigger(dragTarget.obj);
             if (dragTarget.type === 'planet') openPlanet(dragTarget.obj);
-            if (dragTarget.type === 'orb') openOrbPanel();
+            if (dragTarget.type === 'orb') openOrbPanel(dragTarget.obj);
         }
     }
     isDragging = false;
