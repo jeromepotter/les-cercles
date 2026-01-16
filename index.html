@@ -17,6 +17,9 @@
             --shadow: 0 2px 5px rgba(0,0,0,0.1);
             --slider-pill-bg: rgba(0,0,0,0.12);
             --slider-pill-border: rgba(0,0,0,0.08);
+            --panel-surface: rgba(255,255,255,0.6);
+            --panel-surface-strong: rgba(255,255,255,0.8);
+            --panel-border-soft: rgba(0,0,0,0.08);
         }
 
         /* DARK MODE overrides */
@@ -28,6 +31,9 @@
             --shadow: 0 4px 10px rgba(0,0,0,0.4);
             --slider-pill-bg: rgba(255,255,255,0.12);
             --slider-pill-border: rgba(255,255,255,0.12);
+            --panel-surface: rgba(42,42,42,0.9);
+            --panel-surface-strong: rgba(52,52,52,0.95);
+            --panel-border-soft: rgba(255,255,255,0.12);
         }
 
         @font-face {
@@ -235,10 +241,10 @@
         details.side-panel {
             pointer-events: auto;
             width: 260px;
-            border: 1px solid rgba(0,0,0,0.08);
+            border: 1px solid var(--panel-border-soft);
             border-radius: 16px;
             padding: 10px 12px;
-            background: rgba(255,255,255,0.6);
+            background: var(--panel-surface);
             backdrop-filter: blur(6px);
             display: flex;
             flex-direction: column;
@@ -286,16 +292,18 @@
             gap: 8px;
             align-items: center;
             margin-bottom: 8px;
-            border: 1px solid rgba(0,0,0,0.08);
+            border: 1px solid var(--panel-border-soft);
             border-radius: 999px;
             padding: 6px 10px;
-            background: rgba(255,255,255,0.6);
+            background: var(--panel-surface-strong);
         }
 
         .panel-title {
             flex: 1 1 0;
             display: flex;
-            justify-content: center;
+            justify-content: flex-start;
+            text-align: left;
+            padding-left: 6px;
         }
 
         summary.panel-header-row .btn-text {
@@ -364,11 +372,11 @@
             gap: 10px;
             align-items: center;
             pointer-events: auto;
-            background: rgba(255,255,255,0.2);
+            background: var(--panel-surface);
             padding: 8px 16px;
             border-radius: 20px;
             backdrop-filter: blur(5px);
-            border: 1px solid rgba(255,255,255,0.1);
+            border: 1px solid var(--panel-border-soft);
             max-width: 90vw;
             overflow-x: auto;
             z-index: 15;
@@ -687,14 +695,15 @@
 
             #controls-footer {
                 height: auto;
-                padding: 10px 20px 20px;
+                gap: 8px;
+                padding: 4px 16px 16px;
             }
 
             #side-controls {
                 flex-direction: column;
-                gap: 20px;
+                gap: 12px;
                 width: 100%;
-                margin-bottom: 20px;
+                margin-bottom: 12px;
             }
 
             details.side-panel {
@@ -704,7 +713,22 @@
             }
 
             #planet-list-wrap {
-                margin: 20px auto 0;
+                margin: 8px auto 0;
+            }
+
+            summary.panel-header-row {
+                flex-wrap: wrap;
+                justify-content: center;
+                row-gap: 6px;
+            }
+
+            summary.panel-header-row .panel-title {
+                flex: 1 1 100%;
+                justify-content: flex-start;
+            }
+
+            summary.panel-header-row .btn-text {
+                flex: 0 1 auto;
             }
 
             .modal { width: 85vw; }
@@ -1218,6 +1242,15 @@ const AudioEngine = (() => {
         if(ctx.state === 'suspended') ctx.resume();
     }
 
+    function resume() {
+        if (!STATE.audioEnabled) return;
+        if (!ctx) {
+            init();
+            return;
+        }
+        if (ctx.state === 'suspended') ctx.resume();
+    }
+
     function setVolume(value) {
         if(!ctx || !masterGain) return;
         const target = STATE.audioEnabled ? value : 0;
@@ -1267,7 +1300,7 @@ const AudioEngine = (() => {
         osc.stop(t + 1.3);
     }
 
-    return { init, toggle, playNote, setVolume };
+    return { init, toggle, playNote, setVolume, resume };
 })();
 
 /**
@@ -1368,7 +1401,7 @@ function resize() {
     const isMobile = canvasW < 768;
     const footer = document.getElementById('controls-footer');
     const footerHeight = footer ? footer.offsetHeight : 0;
-    const minCanvas = Math.floor(window.innerHeight * 0.8);
+    const minCanvas = Math.floor(window.innerHeight * 0.68);
     const available = window.innerHeight - footerHeight;
     const displayHeight = isMobile ? Math.max(minCanvas, available) : Math.max(available, 200);
     canvas.width = canvasW;
@@ -2768,6 +2801,11 @@ function initializeApp() {
     requestAnimationFrame(loop);
 }
 
+function resumeAudioEngineIfNeeded() {
+    if (!STATE.isRunning) return;
+    AudioEngine.resume();
+}
+
 document.getElementById('start-overlay').addEventListener('click', () => {
     initializeApp();
 });
@@ -2777,6 +2815,15 @@ document.getElementById('start-overlay').addEventListener('touchstart', (e) => {
     e.preventDefault();
     initializeApp();
 }, {passive: false});
+
+document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) resumeAudioEngineIfNeeded();
+});
+
+window.addEventListener('pageshow', () => resumeAudioEngineIfNeeded());
+window.addEventListener('focus', () => resumeAudioEngineIfNeeded());
+document.addEventListener('touchstart', () => resumeAudioEngineIfNeeded(), { passive: true });
+document.addEventListener('pointerdown', () => resumeAudioEngineIfNeeded(), { passive: true });
 
 </script>
 </body>
