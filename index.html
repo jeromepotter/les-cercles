@@ -273,7 +273,7 @@ body.dark-mode select {
 
         .control-buttons-row {
             display: flex;
-            gap: 8px;
+            gap: 30px;
             justify-content: center;
             margin-top: 6px;
         }
@@ -989,31 +989,55 @@ body.dark-mode select {
                 </details>
 
                 <details class="side-panel" id="orbs-panel">
-                    <summary class="panel-header-row">
-                        <span class="panel-title-row">
-                            <span class="panel-title">ORBS</span>
-                            <span class="panel-caret" aria-hidden="true"></span>
-                        </span>
-                        <button class="btn-text" onclick="event.stopPropagation(); toggleSlingshotArm()">ARM ORB</button>
-                        <button class="btn-text" onclick="event.stopPropagation(); removeAllOrbs()">CLEAR</button>
-                        <button class="btn-text" onclick="event.stopPropagation(); randomizeOrbSizes()">RND SIZE</button>
-                    </summary>
-                    <div class="control-row-split">
-    <div class="control-group-inline">
-        <label>Trigger</label>
-        <select id="o-trigger-inline">
-            <option value="notes">NOTES</option>
-            <option value="gates">GATES</option>
-            <option value="circle">CIRCLE</option>
-            <option value="orb" data-requires-collision="true" disabled>ORB</option>
-            <option value="orb-circle" data-requires-collision="true" disabled>ORB + CIRCLE</option>
-        </select>
-    </div>
-    <div class="control-group-inline">
-        <label>Collision</label>
-        <input type="checkbox" id="o-collision-inline" class="collision-toggle">
-    </div>
-</div>
+    <summary class="panel-header-row">
+        <span class="panel-title-row">
+            <span class="panel-title">ORBS</span>
+            <span class="panel-caret" aria-hidden="true"></span>
+        </span>
+        <button class="btn-text" onclick="event.stopPropagation(); toggleSlingshotArm()">ARM ORB</button>
+        <button class="btn-text" onclick="event.stopPropagation(); removeAllOrbs()">CLEAR</button>
+        <button class="btn-text" onclick="event.stopPropagation(); randomizeOrbSizes()">RND SIZE</button>
+    </summary>
+
+    <div class="side-panel-content">
+        
+        <div class="control-row-split">
+            <div class="control-group-inline">
+                <label>Trigger</label>
+                <select id="o-trigger-inline">
+                    <option value="notes">NOTES</option>
+                    <option value="gates">GATES</option>
+                    <option value="circle">CIRCLE</option>
+                    <option value="orb" data-requires-collision="true" disabled>ORB</option>
+                    <option value="orb-circle" data-requires-collision="true" disabled>ORB + CIRCLE</option>
+                </select>
+            </div>
+            <div class="control-group-inline">
+                <label>Collision</label>
+                <input type="checkbox" id="o-collision-inline" class="collision-toggle">
+            </div>
+        </div>
+
+        <div class="panel-slider-row">
+            <div class="macro-slider-container">
+                <div class="slider-pill slider-pill--compact">
+                    <span class="slider-pill__label">Size</span>
+                    <span class="slider-pill__value" id="o-size-label">1.00x</span>
+                    <input id="o-size-range" type="range" min="0" max="100" step="1" value="50" data-value-target="o-size-label" data-format="orb-size" oninput="updateOrbSizeFromSlider(this.value); updateSliderValue(this)">
+                </div>
+            </div>
+        </div>
+        <div class="panel-slider-row">
+            <div class="macro-slider-container">
+                <div class="slider-pill slider-pill--compact">
+                    <span class="slider-pill__label">Volume</span>
+                    <span class="slider-pill__value" id="o-vol-label">70%</span>
+                    <input id="o-vol-range" type="range" min="0" max="1" step="0.01" value="0.7" data-value-target="o-vol-label" data-format="percent-100" oninput="updateOrbVolumeFromSlider(this.value); updateSliderValue(this)">
+                </div>
+            </div>
+        </div>
+
+    </div> </details>
                         <div class="panel-slider-row">
                             <div class="macro-slider-container">
                                 <div class="slider-pill slider-pill--compact">
