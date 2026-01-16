@@ -906,7 +906,7 @@ summary.panel-header-row .panel-caret {
                     <div class="slider-pill slider-pill--compact">
                         <span class="slider-pill__label">Volume</span>
                         <span class="slider-pill__value" id="volume-value">100%</span>
-                        <input id="volume-range" type="range" min="0" max="2" step="0.01" value="1" data-value-target="volume-value" data-format="percent" oninput="updateMasterVolume(this.value); updateSliderValue(this)">
+                        <input id="volume-range" type="range" min="0" max="1" step="0.01" value="1" data-value-target="volume-value" data-format="percent-100" oninput="updateMasterVolume(this.value); updateSliderValue(this)">
                     </div>
                 </div>
 
@@ -949,7 +949,7 @@ summary.panel-header-row .panel-caret {
                     <div class="slider-pill">
                         <span class="slider-pill__label">Volume</span>
                         <span class="slider-pill__value" id="notes-volume-value">100%</span>
-                        <input id="notes-volume-range" type="range" min="0" max="2" step="0.01" value="1" data-value-target="notes-volume-value" data-format="percent" oninput="updateMasterVolume(this.value); updateSliderValue(this)">
+                        <input id="notes-volume-range" type="range" min="0" max="1" step="0.01" value="1" data-value-target="notes-volume-value" data-format="percent-100" oninput="updateNodeVolume(this.value); updateSliderValue(this)">
                     </div>
                 </div>
             </div>
@@ -1222,12 +1222,27 @@ function getOrbRadius(orb) {
     return ORB_BASE_RADIUS * getOrbScale(orb);
 }
 
+function clamp01(value) {
+    const num = parseFloat(value);
+    if (Number.isNaN(num)) return 0;
+    return Math.max(0, Math.min(1, num));
+}
+
+function getNodeOutputVelocity(baseVelocity) {
+    return clamp01((baseVelocity ?? 1) * STATE.nodeVolume);
+}
+
+function getOrbOutputVelocity(baseVelocity) {
+    return clamp01(baseVelocity ?? 0.7);
+}
+
 /** * CORE STATE */
 const STATE = {
     isRunning: false,
     isPaused: false,
     audioEnabled: true,
-    masterVolume: 0.5,
+    masterVolume: 1,
+    nodeVolume: 1,
     planets: [],
     triggers: [{ id: 1, angle: Math.random() * Math.PI * 2, shift: 0 }],
     orbitRadius: 200, 
@@ -1275,7 +1290,9 @@ function createUndoSnapshot() {
         isPaused: STATE.isPaused,
         gateSpinActive: STATE.gateSpinActive,
         gateSpinRPM: STATE.gateSpinRPM,
-        gateSpinDirection: STATE.gateSpinDirection
+        gateSpinDirection: STATE.gateSpinDirection,
+        masterVolume: STATE.masterVolume,
+        nodeVolume: STATE.nodeVolume
     };
 }
 
@@ -1301,6 +1318,9 @@ function applyUndoSnapshot(snapshot) {
     STATE.gateSpinActive = snapshot.gateSpinActive ?? false;
     STATE.gateSpinRPM = snapshot.gateSpinRPM ?? 10;
     STATE.gateSpinDirection = snapshot.gateSpinDirection ?? (STATE.direction * -1);
+    STATE.masterVolume = clamp01(snapshot.masterVolume ?? STATE.masterVolume);
+    STATE.nodeVolume = clamp01(snapshot.nodeVolume ?? STATE.nodeVolume);
+    AudioEngine.setVolume(STATE.masterVolume);
     STATE.orbPanelPrevSlingshot = null;
 
     STATE.editingId = null;
@@ -1316,6 +1336,10 @@ function applyUndoSnapshot(snapshot) {
     if (speedRange) speedRange.value = STATE.globalSpeed;
     const transposeRange = document.getElementById('transpose-range');
     if (transposeRange) transposeRange.value = STATE.gateTranspose;
+    const masterRange = document.getElementById('volume-range');
+    if (masterRange) masterRange.value = STATE.masterVolume;
+    const notesRange = document.getElementById('notes-volume-range');
+    if (notesRange) notesRange.value = STATE.nodeVolume;
     const transposeLabel = document.getElementById('transpose-label');
     if (transposeLabel) transposeLabel.innerText = formatSliderValue('signed', STATE.gateTranspose);
     syncGateUI();
@@ -1638,15 +1662,20 @@ function updateSidePanelsForViewport() {
 function toggleAudio() { AudioEngine.toggle(); }
 
 function updateMasterVolume(value) {
-    const volume = parseFloat(value) * 0.5;
+    const volume = clamp01(value);
     STATE.masterVolume = volume;
     AudioEngine.setVolume(volume);
     const masterSlider = document.getElementById('volume-range');
-    const notesSlider = document.getElementById('notes-volume-range');
     if (masterSlider && masterSlider.value !== value) {
         masterSlider.value = value;
         updateSliderValue(masterSlider);
     }
+}
+
+function updateNodeVolume(value) {
+    const volume = clamp01(value);
+    STATE.nodeVolume = volume;
+    const notesSlider = document.getElementById('notes-volume-range');
     if (notesSlider && notesSlider.value !== value) {
         notesSlider.value = value;
         updateSliderValue(notesSlider);
@@ -2113,7 +2142,7 @@ function getEffectiveTriggerShift(shift) {
 
 function playOrbNote(orb) {
     if (!orb.pitch) return;
-    const velocity = orb.velocity ?? 0.7;
+    const velocity = getOrbOutputVelocity(orb.velocity);
     AudioEngine.playNote(orb.pitch, velocity);
     MidiEngine.sendNote(orb.pitch, velocity);
     orb.flash = 1.0;
@@ -2469,8 +2498,7 @@ function updateOrbVolumeFromSlider(val) {
         pushUndoState();
         orbVolumeIsAdjusting = true;
     }
-    const volume = parseFloat(val);
-    if (Number.isNaN(volume)) return;
+    const volume = clamp01(val);
     STATE.orbSettings.velocity = volume;
     STATE.projectiles.forEach(orb => {
         orb.velocity = volume;
@@ -2570,8 +2598,9 @@ function spinAllTriggers(dAngle) {
                     p.note,
                     getEffectiveTriggerShift(t.shift)
                 );
-                AudioEngine.playNote(noteToPlay, p.velocity);
-                MidiEngine.sendNote(noteToPlay, p.velocity);
+                const velocity = getNodeOutputVelocity(p.velocity);
+                AudioEngine.playNote(noteToPlay, velocity);
+                MidiEngine.sendNote(noteToPlay, velocity);
                 p.flash = 1.0;
             }
         });
@@ -2704,8 +2733,9 @@ function handleMove(x, y) {
                                 p.note,
                                 getEffectiveTriggerShift(t.shift)
                             );
-                            AudioEngine.playNote(noteToPlay, p.velocity);
-                            MidiEngine.sendNote(noteToPlay, p.velocity);
+                            const velocity = getNodeOutputVelocity(p.velocity);
+                            AudioEngine.playNote(noteToPlay, velocity);
+                            MidiEngine.sendNote(noteToPlay, velocity);
                             p.flash = 1.0;
                         }
                     });
@@ -2732,8 +2762,9 @@ function handleMove(x, y) {
                         p.note,
                         getEffectiveTriggerShift(tObj.shift)
                     );
-                    AudioEngine.playNote(noteToPlay, p.velocity);
-                    MidiEngine.sendNote(noteToPlay, p.velocity);
+                    const velocity = getNodeOutputVelocity(p.velocity);
+                    AudioEngine.playNote(noteToPlay, velocity);
+                    MidiEngine.sendNote(noteToPlay, velocity);
                     p.flash = 1.0;
                 }
             });
@@ -2764,8 +2795,9 @@ function handleMove(x, y) {
                         pObj.note,
                         getEffectiveTriggerShift(t.shift)
                     );
-                    AudioEngine.playNote(noteToPlay, pObj.velocity);
-                    MidiEngine.sendNote(noteToPlay, pObj.velocity);
+                    const velocity = getNodeOutputVelocity(pObj.velocity);
+                    AudioEngine.playNote(noteToPlay, velocity);
+                    MidiEngine.sendNote(noteToPlay, velocity);
                     pObj.flash = 1.0;
                 }
             });
@@ -2949,8 +2981,9 @@ function loop(time) {
                 const distP = Math.sqrt(Math.pow(orb.x - px, 2) + Math.pow(orb.y - py, 2));
                 
                 if (distP < ORB_PLANET_HIT_BASE * getOrbScale(orb) && (!p.cooldown || p.cooldown <= 0)) {
-                    AudioEngine.playNote(p.note, p.velocity);
-                    MidiEngine.sendNote(p.note, p.velocity);
+                    const velocity = getNodeOutputVelocity(p.velocity);
+                    AudioEngine.playNote(p.note, velocity);
+                    MidiEngine.sendNote(p.note, velocity);
                     p.flash = 1.0;
                     if (!STATE.slingshot.active) {
                         STATE.centerColor = p.color;
@@ -3085,8 +3118,9 @@ function loop(time) {
                         p.note,
                         getEffectiveTriggerShift(trig.shift)
                     );
-                    AudioEngine.playNote(noteToPlay, p.velocity);
-                    MidiEngine.sendNote(noteToPlay, p.velocity);
+                    const velocity = getNodeOutputVelocity(p.velocity);
+                    AudioEngine.playNote(noteToPlay, velocity);
+                    MidiEngine.sendNote(noteToPlay, velocity);
                     p.flash = 1.0;
                 }
             });
