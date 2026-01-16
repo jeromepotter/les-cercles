@@ -321,6 +321,24 @@
             border-radius: 0;
         }
 
+        summary.panel-header-row .panel-caret {
+            margin-left: auto;
+            font-size: 0.75em;
+            font-weight: 300;
+            opacity: 0.6;
+            letter-spacing: 0.5px;
+            line-height: 1;
+            user-select: none;
+        }
+
+        details.side-panel summary.panel-header-row .panel-caret::before {
+            content: "˅";
+        }
+
+        details.side-panel[open] summary.panel-header-row .panel-caret::before {
+            content: "˄";
+        }
+
         .panel-button-row .btn-text,
         .control-buttons-row .btn-text {
             border: 1px solid rgba(0,0,0,0.2);
@@ -343,7 +361,7 @@
 
         #controls-footer {
             width: 100%;
-            height: 300px;
+            height: 260px;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -351,7 +369,7 @@
             gap: 12px;
             padding: 6px 20px 32px;
             box-sizing: border-box;
-            margin-top: -16px;
+            margin-top: -40px;
         }
 
         #side-controls {
@@ -844,6 +862,7 @@
                         <button id="btn-dir" class="btn-text" onclick="event.stopPropagation(); toggleDirection()">CW</button>
                         <button class="btn-text" onclick="event.stopPropagation(); syncRPMs()">SYNC</button>
                         <button class="btn-text" onclick="event.stopPropagation(); evenSpacePlanets()">EVEN</button>
+                        <span class="panel-caret" aria-hidden="true"></span>
                     </summary>
                     <div class="side-panel-content">
                         <div class="panel-slider-row">
@@ -875,6 +894,7 @@
                         <button class="btn-text" onclick="event.stopPropagation(); randomizeGateTranspose()">RND TRNS</button>
                         <button class="btn-text" onclick="event.stopPropagation(); randomizeGateSpacing()">RND SPC</button>
                         <button id="btn-gate-dir" class="btn-text" onclick="event.stopPropagation(); toggleGateSpinDirection()">CCW</button>
+                        <span class="panel-caret" aria-hidden="true"></span>
                     </summary>
                     <div class="side-panel-content">
                         <div class="panel-slider-row">
@@ -918,6 +938,7 @@
                         <button class="btn-text" onclick="event.stopPropagation(); toggleSlingshotArm()">ARM ORB</button>
                         <button class="btn-text" onclick="event.stopPropagation(); removeAllOrbs()">REMOVE ORBS</button>
                         <button class="btn-text" onclick="event.stopPropagation(); randomizeOrbSizes()">RANDOM SIZE</button>
+                        <span class="panel-caret" aria-hidden="true"></span>
                     </summary>
                     <div class="side-panel-content">
                         <div class="control-row">
@@ -1540,9 +1561,9 @@ function updateSidePanelsForViewport() {
     const gatesPanel = document.getElementById('gates-panel');
     const orbsPanel = document.getElementById('orbs-panel');
     if (!notesPanel || !gatesPanel || !orbsPanel) return;
-    notesPanel.open = !isMobile;
-    gatesPanel.open = !isMobile;
-    orbsPanel.open = !isMobile;
+    notesPanel.open = isMobile;
+    gatesPanel.open = isMobile;
+    orbsPanel.open = isMobile;
 }
 
 function toggleAudio() { AudioEngine.toggle(); }
