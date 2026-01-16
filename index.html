@@ -2675,6 +2675,7 @@ function loop(time) {
     if (STATE.orbSettings.collision) {
         const orbTriggerMode = STATE.orbSettings.triggerMode;
         const isOrbCollisionMode = orbTriggerMode === 'orb' || orbTriggerMode === 'orb-circle';
+        const shouldAssignPitchOnCollision = isOrbCollisionMode || orbTriggerMode === 'circle';
         for (let i = 0; i < STATE.projectiles.length; i++) {
             const orbA = STATE.projectiles[i];
             for (let j = i + 1; j < STATE.projectiles.length; j++) {
@@ -2701,7 +2702,7 @@ function loop(time) {
                 orbA.y -= ny * overlap;
                 orbB.x += nx * overlap;
                 orbB.y += ny * overlap;
-                if (isOrbCollisionMode) {
+                if (shouldAssignPitchOnCollision) {
                     assignOrbPitch(orbA);
                     assignOrbPitch(orbB);
                     if (orbTriggerMode === 'orb') {
