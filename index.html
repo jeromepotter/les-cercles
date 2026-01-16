@@ -678,14 +678,19 @@ summary.panel-header-row .panel-caret {
         }
 
         input:not([type=range]), select {
-            background: var(--bg-color);
+            background-color: var(--bg-color); /* FIXED: Use background-color so we don't wipe out the arrow image */
             color: var(--ink-color);
             border: 1px solid #ccc;
             padding: 8px;
             font-family: inherit;
-            width: 120px;
+            width: auto; /* FIXED: Changed from 120px to auto so text fits */
             border-radius: 3px;
             font-size: 16px; 
+        }
+
+        /* ADDED: Ensure dropdowns keep their specific padding so text doesn't hit the arrow */
+        select {
+            padding: 6px 24px 6px 8px;
         }
         input[type=checkbox] { width: auto; }
 
