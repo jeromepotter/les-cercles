@@ -851,6 +851,15 @@
                                 </div>
                             </div>
                         </div>
+                        <div class="panel-slider-row">
+                            <div class="macro-slider-container">
+                                <div class="slider-pill">
+                                    <span class="slider-pill__label">Volume</span>
+                                    <span class="slider-pill__value" id="notes-volume-value">100%</span>
+                                    <input id="notes-volume-range" type="range" min="0" max="2" step="0.01" value="1" data-value-target="notes-volume-value" data-format="percent" oninput="updateMasterVolume(this.value); updateSliderValue(this)">
+                                </div>
+                            </div>
+                        </div>
 
                     </div>
                 </details>
@@ -903,6 +912,8 @@
                     <summary class="panel-header-row">
                         <span class="panel-title">ORBS</span>
                         <button class="btn-text" onclick="event.stopPropagation(); toggleSlingshotArm()">ARM ORB</button>
+                        <button class="btn-text" onclick="event.stopPropagation(); removeAllOrbs()">REMOVE ORBS</button>
+                        <button class="btn-text" onclick="event.stopPropagation(); randomizeOrbSizes()">RANDOM SIZE</button>
                     </summary>
                     <div class="side-panel-content">
                         <div class="control-row">
@@ -925,9 +936,6 @@
                                     <span class="slider-pill__label">Size</span>
                                     <span class="slider-pill__value" id="o-size-label">1.00x</span>
                                     <input id="o-size-range" type="range" min="0" max="100" step="1" value="50" data-value-target="o-size-label" data-format="orb-size" oninput="updateOrbSizeFromSlider(this.value); updateSliderValue(this)">
-                                </div>
-                                <div class="control-buttons-row">
-                                    <button class="btn-text btn-small" onclick="randomizeOrbSizes()">RANDOM SIZE</button>
                                 </div>
                             </div>
                         </div>
@@ -1539,6 +1547,16 @@ function updateMasterVolume(value) {
     const volume = parseFloat(value) * 0.5;
     STATE.masterVolume = volume;
     AudioEngine.setVolume(volume);
+    const masterSlider = document.getElementById('volume-range');
+    const notesSlider = document.getElementById('notes-volume-range');
+    if (masterSlider && masterSlider.value !== value) {
+        masterSlider.value = value;
+        updateSliderValue(masterSlider);
+    }
+    if (notesSlider && notesSlider.value !== value) {
+        notesSlider.value = value;
+        updateSliderValue(notesSlider);
+    }
 }
 
 function getDirectionToggleLabel(direction) {
@@ -1651,6 +1669,7 @@ function updateSliderFill(input) {
 function refreshSliderDisplays() {
     const ids = [
         'volume-range',
+        'notes-volume-range',
         'speed-range',
         'gate-range',
         'transpose-range',
@@ -2127,6 +2146,13 @@ function deleteOrb() {
     if (!STATE.editingOrbId) return;
     pushUndoState();
     STATE.projectiles = STATE.projectiles.filter(orb => orb.id !== STATE.editingOrbId);
+    closePanel('orb-panel');
+}
+
+function removeAllOrbs() {
+    if (STATE.projectiles.length === 0) return;
+    pushUndoState();
+    STATE.projectiles = [];
     closePanel('orb-panel');
 }
 
