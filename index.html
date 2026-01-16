@@ -373,6 +373,7 @@
             margin: 0;
             z-index: 2;
             -webkit-tap-highlight-color: transparent;
+            touch-action: none;
         }
         input[type=range]:focus {
             outline: none;
@@ -601,10 +602,22 @@
                 justify-content: center;
             }
 
+            #game-container {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                height: auto;
+                min-height: 120vh;
+                padding-bottom: 60px;
+            }
+
             #side-controls {
-                inset: auto 10px 120px;
+                position: static;
+                margin-top: 20px;
                 flex-direction: column;
                 gap: 12px;
+                width: 100%;
+                margin-bottom: 40px;
             }
 
             details.side-panel {
@@ -613,13 +626,9 @@
             }
 
             #planet-list-wrap {
-                bottom: 240px;
-            }
-
-            .side-panel-content {
-                max-height: 40vh;
-                overflow-y: auto;
-                -webkit-overflow-scrolling: touch;
+                position: static;
+                transform: none;
+                margin: 20px auto 0;
             }
 
             .modal { width: 85vw; }
@@ -628,6 +637,11 @@
                 left: 50%;
                 right: auto;
                 transform: translate(-50%, -50%);
+            }
+
+            body {
+                overflow: auto;
+                height: auto;
             }
         }
     </style>
@@ -1267,7 +1281,7 @@ function resize() {
     canvas.width = canvasW;
     canvas.height = canvasH;
     centerX = canvasW/2;
-    centerY = canvasH/2;
+    centerY = canvasW < 768 ? canvasH * 0.32 : canvasH / 2;
     const dim = Math.min(canvasW, canvasH);
     STATE.orbitRadius = dim * (dim < 600 ? 0.3 : 0.35);
     updateSidePanelsForViewport();
