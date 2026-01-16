@@ -304,6 +304,14 @@
             justify-content: flex-start;
             text-align: left;
             padding-left: 6px;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .panel-caret {
+            font-size: 0.7em;
+            opacity: 0.6;
+            transform: translateY(-1px);
         }
 
         summary.panel-header-row .btn-text {
@@ -455,7 +463,7 @@
             margin: 0;
             z-index: 2;
             -webkit-tap-highlight-color: transparent;
-            touch-action: none;
+            touch-action: pan-x;
         }
         input[type=range]:focus {
             outline: none;
@@ -690,20 +698,20 @@
                 align-items: center;
                 height: auto;
                 min-height: 100vh;
-                padding-bottom: 60px;
+                padding-bottom: 40px;
             }
 
             #controls-footer {
                 height: auto;
-                gap: 8px;
-                padding: 4px 16px 16px;
+                gap: 6px;
+                padding: 0 14px 12px;
             }
 
             #side-controls {
                 flex-direction: column;
-                gap: 12px;
+                gap: 10px;
                 width: 100%;
-                margin-bottom: 12px;
+                margin-bottom: 8px;
             }
 
             details.side-panel {
@@ -713,7 +721,7 @@
             }
 
             #planet-list-wrap {
-                margin: 8px auto 0;
+                margin: 4px auto 0;
             }
 
             summary.panel-header-row {
@@ -794,11 +802,11 @@
             <div id="side-controls">
                 <details class="side-panel" id="notes-panel">
                     <summary class="panel-header-row">
-                        <span class="panel-title">NOTES</span>
-                        <button id="btn-dir" class="btn-text" onclick="event.stopPropagation(); toggleDirection()">CCW</button>
+                        <span class="panel-title">NOTES <span class="panel-caret">▾</span></span>
+                        <button id="btn-play" class="btn-text btn-fixed" onclick="event.stopPropagation(); togglePlay()">PLAY</button>
+                        <button id="btn-dir" class="btn-text" onclick="event.stopPropagation(); toggleDirection()">CW</button>
                         <button class="btn-text" onclick="event.stopPropagation(); syncRPMs()">SYNC</button>
                         <button class="btn-text" onclick="event.stopPropagation(); evenSpacePlanets()">EVEN</button>
-                        <button id="btn-play" class="btn-text btn-fixed" onclick="event.stopPropagation(); togglePlay()">PLAY</button>
                     </summary>
                     <div class="side-panel-content">
                         <div class="panel-slider-row">
@@ -816,11 +824,11 @@
 
                 <details class="side-panel" id="gates-panel">
                     <summary class="panel-header-row">
-                        <span class="panel-title">GATES</span>
+                        <span class="panel-title">GATES <span class="panel-caret">▾</span></span>
                         <button id="btn-gate-play" class="btn-text btn-fixed" onclick="event.stopPropagation(); toggleGateSpin()">PLAY</button>
                         <button class="btn-text" onclick="event.stopPropagation(); randomizeGateTranspose()">RND TRNS</button>
                         <button class="btn-text" onclick="event.stopPropagation(); randomizeGateSpacing()">RND SPC</button>
-                        <button id="btn-gate-dir" class="btn-text" onclick="event.stopPropagation(); toggleGateSpinDirection()">CW</button>
+                        <button id="btn-gate-dir" class="btn-text" onclick="event.stopPropagation(); toggleGateSpinDirection()">CCW</button>
                     </summary>
                     <div class="side-panel-content">
                         <div class="panel-slider-row">
@@ -830,8 +838,14 @@
                                     <span class="slider-pill__value" id="gate-label">1</span>
                                     <input id="gate-range" type="range" min="1" max="32" step="1" value="1" data-value-target="gate-label" data-format="int" oninput="updateGates(this.value); updateSliderValue(this)">
                                 </div>
+                                <div class="control-buttons-row">
+                                    <button class="btn-text btn-small" onclick="adjustGates(-1)">-1</button>
+                                    <button class="btn-text btn-small" onclick="adjustGates(1)">+1</button>
+                                </div>
                             </div>
+                        </div>
 
+                        <div class="panel-slider-row">
                             <div class="macro-slider-container">
                                 <div class="slider-pill">
                                     <span class="slider-pill__label">Gate Speed</span>
@@ -860,7 +874,7 @@
 
                 <details class="side-panel" id="orbs-panel">
                     <summary class="panel-header-row">
-                        <span class="panel-title">ORBS</span>
+                        <span class="panel-title">ORBS <span class="panel-caret">▾</span></span>
                         <button class="btn-text" onclick="event.stopPropagation(); toggleSlingshotArm()">ARM ORB</button>
                     </summary>
                     <div class="side-panel-content">
@@ -1110,7 +1124,7 @@ function applyUndoSnapshot(snapshot) {
 
     const btn = document.getElementById('btn-dir');
     const isCW = STATE.direction === 1;
-    btn.innerText = isCW ? "CW" : "CCW";
+    btn.innerText = isCW ? "CCW" : "CW";
     if (isCW) document.body.classList.add('dark-mode');
     else document.body.classList.remove('dark-mode');
 
@@ -1401,7 +1415,7 @@ function resize() {
     const isMobile = canvasW < 768;
     const footer = document.getElementById('controls-footer');
     const footerHeight = footer ? footer.offsetHeight : 0;
-    const minCanvas = Math.floor(window.innerHeight * 0.68);
+    const minCanvas = Math.floor(window.innerHeight * 0.6);
     const available = window.innerHeight - footerHeight;
     const displayHeight = isMobile ? Math.max(minCanvas, available) : Math.max(available, 200);
     canvas.width = canvasW;
@@ -1519,7 +1533,7 @@ function updateGateSpinUI() {
     const btn = document.getElementById('btn-gate-play');
     if (btn) btn.innerText = STATE.gateSpinActive ? "PAUSE" : "PLAY";
     const dirBtn = document.getElementById('btn-gate-dir');
-    if (dirBtn) dirBtn.innerText = STATE.gateSpinDirection === 1 ? "CW" : "CCW";
+    if (dirBtn) dirBtn.innerText = STATE.gateSpinDirection === 1 ? "CCW" : "CW";
     const speedRange = document.getElementById('gate-speed-range');
     if (speedRange) {
         speedRange.value = STATE.gateSpinRPM;
@@ -1546,7 +1560,7 @@ function toggleDirection() {
     STATE.direction *= -1;
     const btn = document.getElementById('btn-dir');
     const isCW = STATE.direction === 1;
-    btn.innerText = isCW ? "CW" : "CCW";
+    btn.innerText = isCW ? "CCW" : "CW";
     if(isCW) document.body.classList.add('dark-mode');
     else document.body.classList.remove('dark-mode');
 }
@@ -1786,7 +1800,7 @@ function handleFileLoad(input) {
             STATE.gateTranspose = data.gateTranspose || 0;
             STATE.direction = data.direction || -1; 
             const isCW = STATE.direction === 1;
-            document.getElementById('btn-dir').innerText = isCW ? "CW" : "CCW";
+            document.getElementById('btn-dir').innerText = isCW ? "CCW" : "CW";
             if(isCW) document.body.classList.add('dark-mode');
             else document.body.classList.remove('dark-mode');
             if (data.gateSpinRPM) STATE.gateSpinRPM = data.gateSpinRPM;
@@ -2046,8 +2060,14 @@ function evenSpacePlanets() {
     });
 }
 
+function adjustGates(delta) {
+    const current = STATE.triggers.length || 1;
+    const next = Math.max(1, Math.min(32, current + delta));
+    updateGates(next);
+}
+
 function updateGates(val) {
-    const count = parseInt(val);
+    const count = Math.max(1, Math.min(32, parseInt(val, 10) || 1));
     pushUndoState();
     document.getElementById('gate-label').innerText = count;
     const gateRange = document.getElementById('gate-range');
