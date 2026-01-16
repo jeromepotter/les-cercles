@@ -370,14 +370,14 @@ body.dark-mode select {
             flex: 0 1 auto;
             border-radius: 0;
         }
-
-        summary.panel-header-row .panel-caret {
+summary.panel-header-row .panel-caret {
             margin-left: auto;
-            font-size: 0.85em;
-            font-weight: 400;
-            opacity: 0.7;
+            font-size: 1.1em;   /* Larger */
+            font-weight: 900;   /* Bolder */
+            opacity: 1;         /* Fully visible */
             line-height: 1;
             user-select: none;
+            color: var(--ink-color);
         }
 
         details.side-panel summary.panel-header-row .panel-caret::before {
@@ -988,7 +988,7 @@ body.dark-mode select {
                     </div>
                 </details>
 
-                <details class="side-panel" id="orbs-panel">
+               <details class="side-panel" id="orbs-panel">
     <summary class="panel-header-row">
         <span class="panel-title-row">
             <span class="panel-title">ORBS</span>
@@ -1000,7 +1000,6 @@ body.dark-mode select {
     </summary>
 
     <div class="side-panel-content">
-        
         <div class="control-row-split">
             <div class="control-group-inline">
                 <label>Trigger</label>
@@ -1036,30 +1035,8 @@ body.dark-mode select {
                 </div>
             </div>
         </div>
-
-    </div> </details>
-                        <div class="panel-slider-row">
-                            <div class="macro-slider-container">
-                                <div class="slider-pill slider-pill--compact">
-                                    <span class="slider-pill__label">Size</span>
-                                    <span class="slider-pill__value" id="o-size-label">1.00x</span>
-                                    <input id="o-size-range" type="range" min="0" max="100" step="1" value="50" data-value-target="o-size-label" data-format="orb-size" oninput="updateOrbSizeFromSlider(this.value); updateSliderValue(this)">
-                                </div>
-                            </div>
-                        </div>
-                        <div class="panel-slider-row">
-                            <div class="macro-slider-container">
-                                <div class="slider-pill slider-pill--compact">
-                                    <span class="slider-pill__label">Volume</span>
-                                    <span class="slider-pill__value" id="o-vol-label">70%</span>
-                                    <input id="o-vol-range" type="range" min="0" max="1" step="0.01" value="0.7" data-value-target="o-vol-label" data-format="percent-100" oninput="updateOrbVolumeFromSlider(this.value); updateSliderValue(this)">
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </details>
-            </div>
-        </div>
+    </div>
+</details></div> </div>
 
         <div id="planet-panel" class="modal">
             <div class="control-row">
