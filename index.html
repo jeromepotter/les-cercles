@@ -276,6 +276,14 @@
             z-index: 20;
         }
 
+        .side-stack {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            align-items: flex-end;
+            pointer-events: auto;
+        }
+
         #planet-list-wrap {
             position: absolute;
             bottom: 30px;
@@ -620,6 +628,11 @@
                 margin-bottom: 40px;
             }
 
+            .side-stack {
+                width: 100%;
+                align-items: stretch;
+            }
+
             details.side-panel {
                 width: 100%;
                 max-width: 320px;
@@ -710,64 +723,66 @@
                 </div>
             </details>
 
-            <details class="side-panel" id="gates-panel">
-                <summary>GATES</summary>
-                <div class="side-panel-content">
-                    <button id="btn-gate-play" class="btn-text btn-fixed" onclick="toggleGateSpin()">PLAY</button>
+            <div class="side-stack">
+                <details class="side-panel" id="gates-panel">
+                    <summary>GATES</summary>
+                    <div class="side-panel-content">
+                        <button id="btn-gate-play" class="btn-text btn-fixed" onclick="toggleGateSpin()">PLAY</button>
 
-                    <div class="macro-slider-container">
-                        <div class="slider-pill">
-                            <span class="slider-pill__label">Gates</span>
-                            <span class="slider-pill__value" id="gate-label">1</span>
-                            <input id="gate-range" type="range" min="1" max="32" step="1" value="1" data-value-target="gate-label" data-format="int" oninput="updateGates(this.value); updateSliderValue(this)">
+                        <div class="macro-slider-container">
+                            <div class="slider-pill">
+                                <span class="slider-pill__label">Gates</span>
+                                <span class="slider-pill__value" id="gate-label">1</span>
+                                <input id="gate-range" type="range" min="1" max="32" step="1" value="1" data-value-target="gate-label" data-format="int" oninput="updateGates(this.value); updateSliderValue(this)">
+                            </div>
                         </div>
-                    </div>
 
-                    <button class="btn-text" onclick="randomizeGateTranspose()">RND TRNS</button>
-                    <button class="btn-text" onclick="randomizeGateSpacing()">RND SPC</button>
+                        <button class="btn-text" onclick="randomizeGateTranspose()">RND TRNS</button>
+                        <button class="btn-text" onclick="randomizeGateSpacing()">RND SPC</button>
 
-                    <div class="macro-slider-container">
-                        <div class="slider-pill">
-                            <span class="slider-pill__label">Gate Speed</span>
-                            <span class="slider-pill__value" id="gate-speed-label">10 RPM</span>
-                            <input id="gate-speed-range" type="range" min="1" max="60" step="1" value="10" data-value-target="gate-speed-label" data-format="rpm" oninput="updateGateSpinSpeed(this.value); updateSliderValue(this)">
+                        <div class="macro-slider-container">
+                            <div class="slider-pill">
+                                <span class="slider-pill__label">Gate Speed</span>
+                                <span class="slider-pill__value" id="gate-speed-label">10 RPM</span>
+                                <input id="gate-speed-range" type="range" min="1" max="60" step="1" value="10" data-value-target="gate-speed-label" data-format="rpm" oninput="updateGateSpinSpeed(this.value); updateSliderValue(this)">
+                            </div>
                         </div>
-                    </div>
 
-                    <div class="macro-slider-container">
-                        <div class="slider-pill">
-                            <span class="slider-pill__label">Transpose</span>
-                            <span class="slider-pill__value" id="transpose-label">0</span>
-                            <input id="transpose-range" type="range" min="-7" max="7" step="1" value="0" data-value-target="transpose-label" data-format="signed" oninput="updateGlobalTranspose(this.value); updateSliderValue(this)">
+                        <div class="macro-slider-container">
+                            <div class="slider-pill">
+                                <span class="slider-pill__label">Transpose</span>
+                                <span class="slider-pill__value" id="transpose-label">0</span>
+                                <input id="transpose-range" type="range" min="-7" max="7" step="1" value="0" data-value-target="transpose-label" data-format="signed" oninput="updateGlobalTranspose(this.value); updateSliderValue(this)">
+                            </div>
+                            <div class="control-buttons-row">
+                                <button class="btn-text btn-small" onclick="adjustGlobalTranspose(-1)">-1</button>
+                                <button class="btn-text btn-small" onclick="adjustGlobalTranspose(1)">+1</button>
+                            </div>
                         </div>
-                        <div class="control-buttons-row">
-                            <button class="btn-text btn-small" onclick="adjustGlobalTranspose(-1)">-1</button>
-                            <button class="btn-text btn-small" onclick="adjustGlobalTranspose(1)">+1</button>
+
+                        <button id="btn-gate-dir" class="btn-text" onclick="toggleGateSpinDirection()">CW</button>
+                    </div>
+                </details>
+
+                <details class="side-panel" id="orbs-panel">
+                    <summary>ORBS</summary>
+                    <div class="side-panel-content">
+                        <div class="control-row">
+                            <label>Trigger</label>
+                            <select id="o-trigger-inline">
+                                <option value="notes">NOTES</option>
+                                <option value="gates">GATES</option>
+                                <option value="circle">CIRCLE</option>
+                            </select>
                         </div>
+                        <div class="control-row">
+                            <label>Collision</label>
+                            <input type="checkbox" id="o-collision-inline">
+                        </div>
+                        <button class="btn-text" onclick="toggleSlingshotArm()">ARM ORB</button>
                     </div>
-
-                    <button id="btn-gate-dir" class="btn-text" onclick="toggleGateSpinDirection()">CW</button>
-                </div>
-            </details>
-
-            <details class="side-panel" id="orbs-panel">
-                <summary>ORBS</summary>
-                <div class="side-panel-content">
-                    <div class="control-row">
-                        <label>Trigger</label>
-                        <select id="o-trigger-inline">
-                            <option value="notes">NOTES</option>
-                            <option value="gates">GATES</option>
-                            <option value="circle">CIRCLE</option>
-                        </select>
-                    </div>
-                    <div class="control-row">
-                        <label>Collision</label>
-                        <input type="checkbox" id="o-collision-inline">
-                    </div>
-                    <button class="btn-text" onclick="toggleSlingshotArm()">ARM ORB</button>
-                </div>
-            </details>
+                </details>
+            </div>
         </div>
 
         <div id="planet-panel" class="modal">
