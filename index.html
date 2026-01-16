@@ -1089,7 +1089,7 @@ const STATE = {
     gateSpinRPM: 10,
     gateSpinDirection: 1,
     projectiles: [], 
-    slingshot: { active: false, isDragging: false, pullX: 0, pullY: 0 },
+    slingshot: { active: false, isDragging: false, pullX: 0, pullY: 0, nextColor: null },
     centerColor: 'var(--ink-color)',
     orbPanelPrevSlingshot: null,
     orbSettings: {
@@ -1811,11 +1811,15 @@ function toggleSlingshot() {
     }
 
     STATE.slingshot.active = true;
+    ensureSlingshotColor();
     openOrbPanel();
 }
 
 function toggleSlingshotArm() {
     STATE.slingshot.active = !STATE.slingshot.active;
+    if (STATE.slingshot.active) {
+        ensureSlingshotColor();
+    }
 }
 
 function savePattern() {
@@ -1920,6 +1924,7 @@ function playOrbNote(orb) {
     const velocity = orb.velocity ?? 0.7;
     AudioEngine.playNote(orb.pitch, velocity);
     MidiEngine.sendNote(orb.pitch, velocity);
+    orb.flash = 1.0;
 }
 
 function assignOrbPitch(orb) {
@@ -1928,6 +1933,13 @@ function assignOrbPitch(orb) {
 
 function getRandomPaletteColor() {
     return PALETTE[Math.floor(Math.random() * PALETTE.length)];
+}
+
+function ensureSlingshotColor() {
+    if (!STATE.slingshot.nextColor) {
+        STATE.slingshot.nextColor = getRandomPaletteColor();
+    }
+    STATE.centerColor = STATE.slingshot.nextColor;
 }
 
 function updateGlobalTranspose(val) {
@@ -2061,6 +2073,7 @@ function openOrbPanel() {
         STATE.orbPanelPrevSlingshot = STATE.slingshot.active;
     }
     STATE.slingshot.active = true;
+    ensureSlingshotColor();
     panel.style.display = 'block';
 }
 
@@ -2314,6 +2327,7 @@ function handleStart(x, y, altKey = false) {
     if (STATE.slingshot.active) {
         const distCenter = Math.sqrt(Math.pow(mx-centerX, 2) + Math.pow(my-centerY, 2));
         if (distCenter < 30) {
+            ensureSlingshotColor();
             STATE.slingshot.isDragging = true;
             STATE.slingshot.pullX = mx;
             STATE.slingshot.pullY = my;
@@ -2510,19 +2524,28 @@ function handleEnd() {
         // Spawn New Orb (Limit 32)
         if (STATE.projectiles.length < 32) {
             pushUndoState();
+            if (!STATE.slingshot.nextColor) {
+                ensureSlingshotColor();
+            }
+            const orbColor = STATE.slingshot.nextColor;
             STATE.projectiles.push({
                 id: Date.now() + Math.random(),
                 x: centerX,
                 y: centerY,
                 vx: dx * power,
                 vy: dy * power,
-                color: getRandomPaletteColor(),
+                color: orbColor,
                 pitch: ['notes', 'orb', 'orb-circle'].includes(STATE.orbSettings.triggerMode)
                     ? null
                     : MusicTheory.getRandomNoteInRange(STATE.root, STATE.scale, 2, 5),
                 cooldown: 0,
-                velocity: STATE.orbSettings.velocity
+                velocity: STATE.orbSettings.velocity,
+                flash: 0
             });
+            STATE.slingshot.nextColor = getRandomPaletteColor();
+            if (STATE.slingshot.active) {
+                STATE.centerColor = STATE.slingshot.nextColor;
+            }
         }
     }
 
@@ -2630,7 +2653,8 @@ function loop(time) {
                 }
             }
             if (STATE.orbSettings.triggerMode === 'orb-circle') {
-                if (orb.pitch && orb.cooldown <= 0) {
+                if (!orb.pitch) assignOrbPitch(orb);
+                if (orb.cooldown <= 0) {
                     playOrbNote(orb);
                     orb.cooldown = 0.2;
                 }
@@ -2664,8 +2688,11 @@ function loop(time) {
                     AudioEngine.playNote(p.note, p.velocity);
                     MidiEngine.sendNote(p.note, p.velocity);
                     p.flash = 1.0;
-                    STATE.centerColor = p.color;
+                    if (!STATE.slingshot.active) {
+                        STATE.centerColor = p.color;
+                    }
                     orb.color = p.color; 
+                    orb.flash = 1.0;
                     p.cooldown = 0.2; 
                 }
             });
@@ -2823,16 +2850,21 @@ function loop(time) {
             ctx.arc(centerX, centerY, 8, 0, Math.PI*2);
             ctx.fillStyle = STATE.centerColor;
             ctx.fill();
-            ctx.beginPath();
-            ctx.arc(centerX, centerY, 15, 0, Math.PI*2);
-            ctx.strokeStyle = STATE.centerColor;
-            ctx.lineWidth = 1;
-            ctx.stroke();
         }
     }
 
     // Draw Projectiles
     STATE.projectiles.forEach(orb => {
+        if (orb.flash > 0) {
+            ctx.beginPath();
+            ctx.arc(orb.x, orb.y, 12 * orb.flash, 0, Math.PI*2);
+            ctx.strokeStyle = orb.color;
+            ctx.globalAlpha = orb.flash;
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            ctx.globalAlpha = 1;
+            orb.flash -= 4 * dt;
+        }
         ctx.beginPath();
         ctx.arc(orb.x, orb.y, 5, 0, Math.PI*2);
         ctx.fillStyle = orb.color;
