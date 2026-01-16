@@ -792,6 +792,17 @@ summary.panel-header-row .panel-caret {
                 left: 10px;
                 right: 10px;
             }
+            .control-row-split {
+    flex-direction: column; /* Stack items top-to-bottom */
+    gap: 12px;              /* Add space between Trigger and Collision */
+    align-items: stretch;   /* Make them fill the width */
+    margin-bottom: 12px;
+}
+
+.control-row-split .control-group-inline {
+    width: 100%;
+    justify-content: space-between; /* Push Label to left, Input to right */
+}
 
             .controls-row {
                 flex-direction: column;
