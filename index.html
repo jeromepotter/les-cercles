@@ -282,6 +282,9 @@
             flex-direction: column;
             gap: 10px;
             flex: 1;
+            min-height: 0;
+            overflow-y: auto;
+            padding-bottom: 6px;
         }
 
         .panel-button-row {
@@ -304,19 +307,45 @@
             border-radius: 0;
             padding: 6px 10px;
             background: transparent;
+            flex-wrap: wrap;
+            row-gap: 6px;
+        }
+
+        .panel-title-row {
+            flex: 1 1 100%;
+            display: flex;
+            align-items: center;
+            gap: 6px;
         }
 
         .panel-title {
-            flex: 1 1 0;
             display: flex;
             justify-content: flex-start;
             text-align: left;
             padding-left: 6px;
+            letter-spacing: 1px;
         }
 
         summary.panel-header-row .btn-text {
-            flex: 1 1 0;
+            flex: 0 1 auto;
             border-radius: 0;
+        }
+
+        summary.panel-header-row .panel-caret {
+            margin-left: auto;
+            font-size: 0.85em;
+            font-weight: 400;
+            opacity: 0.7;
+            line-height: 1;
+            user-select: none;
+        }
+
+        details.side-panel summary.panel-header-row .panel-caret::before {
+            content: "▾";
+        }
+
+        details.side-panel[open] summary.panel-header-row .panel-caret::before {
+            content: "▴";
         }
 
         .panel-button-row .btn-text,
@@ -341,14 +370,15 @@
 
         #controls-footer {
             width: 100%;
-            height: 300px;
+            height: 260px;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: flex-start;
             gap: 12px;
-            padding: 10px 20px 32px;
+            padding: 20px 20px 32px;
             box-sizing: border-box;
+            margin-top: -10px;
         }
 
         #side-controls {
@@ -381,16 +411,16 @@
             align-items: center;
             pointer-events: auto;
             background: var(--panel-surface);
-            padding: 8px 16px;
+            padding: 10px 18px;
             border-radius: 0;
             backdrop-filter: blur(5px);
             border: 1px solid var(--panel-border-soft);
             max-width: 90vw;
             overflow-x: auto;
+            overflow-y: visible;
             z-index: 15;
-            overflow: hidden; 
             position: relative;
-            top: -5px;
+            min-height: calc(var(--chip-size) + 20px);
         }
 
         #planet-list-wrap .planet-chip-btn {
@@ -737,6 +767,7 @@
                 height: auto;
                 gap: 8px;
                 padding: 4px 16px 16px;
+                margin-top: 0;
             }
 
             #side-controls {
@@ -763,9 +794,9 @@
                 row-gap: 6px;
             }
 
-            summary.panel-header-row .panel-title {
+            summary.panel-header-row .panel-title-row {
                 flex: 1 1 100%;
-                justify-content: flex-start;
+                justify-content: space-between;
             }
 
             summary.panel-header-row .btn-text {
@@ -835,7 +866,10 @@
             <div id="side-controls">
                 <details class="side-panel" id="notes-panel">
                     <summary class="panel-header-row">
-                        <span class="panel-title">NOTES</span>
+                        <span class="panel-title-row">
+                            <span class="panel-title">NOTES</span>
+                            <span class="panel-caret" aria-hidden="true"></span>
+                        </span>
                         <button id="btn-play" class="btn-text btn-fixed" onclick="event.stopPropagation(); togglePlay()">PLAY</button>
                         <button id="btn-dir" class="btn-text" onclick="event.stopPropagation(); toggleDirection()">CW</button>
                         <button class="btn-text" onclick="event.stopPropagation(); syncRPMs()">SYNC</button>
@@ -866,7 +900,10 @@
 
                 <details class="side-panel" id="gates-panel">
                     <summary class="panel-header-row">
-                        <span class="panel-title">GATES</span>
+                        <span class="panel-title-row">
+                            <span class="panel-title">GATES</span>
+                            <span class="panel-caret" aria-hidden="true"></span>
+                        </span>
                         <button id="btn-gate-play" class="btn-text btn-fixed" onclick="event.stopPropagation(); toggleGateSpin()">PLAY</button>
                         <button class="btn-text" onclick="event.stopPropagation(); randomizeGateTranspose()">RND TRNS</button>
                         <button class="btn-text" onclick="event.stopPropagation(); randomizeGateSpacing()">RND SPC</button>
@@ -910,7 +947,10 @@
 
                 <details class="side-panel" id="orbs-panel">
                     <summary class="panel-header-row">
-                        <span class="panel-title">ORBS</span>
+                        <span class="panel-title-row">
+                            <span class="panel-title">ORBS</span>
+                            <span class="panel-caret" aria-hidden="true"></span>
+                        </span>
                         <button class="btn-text" onclick="event.stopPropagation(); toggleSlingshotArm()">ARM ORB</button>
                         <button class="btn-text" onclick="event.stopPropagation(); removeAllOrbs()">REMOVE ORBS</button>
                         <button class="btn-text" onclick="event.stopPropagation(); randomizeOrbSizes()">RANDOM SIZE</button>
@@ -1536,9 +1576,9 @@ function updateSidePanelsForViewport() {
     const gatesPanel = document.getElementById('gates-panel');
     const orbsPanel = document.getElementById('orbs-panel');
     if (!notesPanel || !gatesPanel || !orbsPanel) return;
-    notesPanel.open = !isMobile;
-    gatesPanel.open = !isMobile;
-    orbsPanel.open = !isMobile;
+    notesPanel.open = isMobile;
+    gatesPanel.open = isMobile;
+    orbsPanel.open = isMobile;
 }
 
 function toggleAudio() { AudioEngine.toggle(); }
