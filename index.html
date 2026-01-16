@@ -15,6 +15,8 @@
             --panel-bg: #f4f4f2;
             --border: 1px solid #bbb;
             --shadow: 0 2px 5px rgba(0,0,0,0.1);
+            --slider-pill-bg: rgba(0,0,0,0.12);
+            --slider-pill-border: rgba(0,0,0,0.08);
         }
 
         /* DARK MODE overrides */
@@ -24,6 +26,8 @@
             --panel-bg: #2a2a2a;
             --border: 1px solid #444;
             --shadow: 0 4px 10px rgba(0,0,0,0.4);
+            --slider-pill-bg: rgba(255,255,255,0.12);
+            --slider-pill-border: rgba(255,255,255,0.12);
         }
 
         @font-face {
@@ -43,6 +47,7 @@
             user-select: none;
             -webkit-user-select: none;
             transition: background-color 0.3s, color 0.3s;
+            touch-action: manipulation;
         }
 
         #game-container {
@@ -52,6 +57,7 @@
             display: flex;
             justify-content: center;
             align-items: center;
+            touch-action: manipulation;
         }
 
         canvas {
@@ -71,7 +77,13 @@
             font-weight: 500;
             letter-spacing: 0.5px;
             z-index: 10;
-            justify-content: space-between; 
+            justify-content: space-between;
+        }
+
+        .hud-group {
+            display: flex;
+            align-items: center;
+            gap: 16px;
         }
 
         h1.title {
@@ -83,7 +95,6 @@
         }
         @media (min-width: 768px) {
             h1.title { display: block; }
-            #hud-top { justify-content: flex-start; }
         }
 
         .hud-item {
@@ -115,16 +126,8 @@
             gap: 6px;
         }
 
-        .volume-control label {
-            font-size: inherit;
-            font-weight: inherit;
-            font-family: inherit;
-            letter-spacing: inherit;
-            white-space: nowrap;
-        }
-
-        .volume-control input[type=range] {
-            width: 90px;
+        .hud-orb-panel {
+            width: 200px;
         }
 
         /* CONTROLS BAR */
@@ -144,7 +147,7 @@
         .controls-row {
             width: 100%;
             display: flex;
-            justify-content: space-between;
+            justify-content: center;
             align-items: flex-end;
             gap: 20px;
             pointer-events: none;
@@ -206,10 +209,79 @@
             letter-spacing: 1px;
             padding: 8px 10px; 
             white-space: nowrap;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .btn-fixed {
+            min-width: 64px;
+            text-align: center;
         }
         .btn-text:active { background: rgba(0,0,0,0.05); opacity: 1; }
         .btn-active { color: var(--accent-orange); opacity: 1; border-bottom: 2px solid var(--accent-orange); }
         .btn-text:disabled { opacity: 0.3; cursor: not-allowed; }
+
+        .btn-small {
+            font-size: 0.75em;
+            padding: 6px 10px;
+        }
+
+        .control-buttons-row {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            margin-top: 6px;
+        }
+
+        details.side-panel {
+            pointer-events: auto;
+            width: 260px;
+            border: 1px solid rgba(0,0,0,0.08);
+            border-radius: 16px;
+            padding: 10px 12px;
+            background: rgba(255,255,255,0.6);
+            backdrop-filter: blur(6px);
+        }
+
+        details.side-panel summary {
+            list-style: none;
+            cursor: pointer;
+            font-size: 0.85em;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            font-weight: 700;
+            opacity: 0.7;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        details.side-panel summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .side-panel-content {
+            margin-top: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        #side-controls {
+            position: absolute;
+            inset: 0 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            pointer-events: none;
+            z-index: 20;
+        }
+
+        #planet-list-wrap {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
 
         /* PLANET LIST */
         #planet-list-wrap {
@@ -227,7 +299,6 @@
             overflow-x: auto;
             z-index: 15;
             overflow: hidden; 
-}
         }
 
         #planet-list-wrap .planet-chip-btn {
@@ -291,27 +362,94 @@
         }
         input[type=range] {
             -webkit-appearance: none;
-            width: 100px;
-            height: 4px;
-            background: #ccc;
-            border-radius: 2px;
+            appearance: none;
+            width: 100%;
+            height: 100%;
+            background: transparent;
+            outline: none;
+            cursor: pointer;
+            position: absolute;
+            inset: 0;
+            margin: 0;
+            z-index: 2;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: none;
+        }
+        input[type=range]:focus {
+            outline: none;
+        }
+        input[type=range]:focus-visible {
             outline: none;
         }
         input[type=range]::-webkit-slider-thumb {
             -webkit-appearance: none;
-            width: 18px; 
-            height: 18px;
-            border-radius: 50%;
-            background: var(--ink-color);
-            cursor: pointer;
-            border: 2px solid var(--bg-color);
-            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+            width: 24px;
+            height: 24px;
+            background: transparent;
+            box-shadow: none;
+            opacity: 0;
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            height: 100%;
+            background: transparent;
+        }
+        input[type=range]::-moz-range-track {
+            height: 100%;
+            background: transparent;
+        }
+        input[type=range]::-moz-range-thumb {
+            width: 24px;
+            height: 24px;
+            background: transparent;
+            border: none;
+            opacity: 0;
+        }
+        input[type=range]::-moz-focus-outer { border: 0; }
+
+        .slider-pill {
+            position: relative;
+            width: 190px;
+            height: 40px;
+            border-radius: 999px;
+            background: linear-gradient(
+                to right,
+                rgba(0,0,0,0.22) 0%,
+                rgba(0,0,0,0.22) var(--slider-fill, 0%),
+                var(--slider-pill-bg) var(--slider-fill, 0%),
+                var(--slider-pill-bg) 100%
+            );
+            border: 1px solid var(--slider-pill-border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 16px;
+            box-sizing: border-box;
+            overflow: hidden;
+            font-size: 0.8em;
+            letter-spacing: 0.3px;
+            font-weight: 600;
+        }
+
+        .slider-pill__label,
+        .slider-pill__value {
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        .slider-pill__value {
+            opacity: 0.7;
+        }
+
+        .slider-pill--compact {
+            width: 150px;
+            height: 34px;
+            font-size: 0.7em;
         }
 
         /* PANELS */
         .modal {
             display: none;
-            position: absolute;
+            position: fixed;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
@@ -322,6 +460,31 @@
             padding: 20px;
             z-index: 100;
             border-radius: 4px;
+            max-height: 80vh;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        #global-panel {
+            position: absolute;
+            top: 0;
+            left: 0;
+            transform: none;
+        }
+
+        #modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.12);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease;
+            z-index: 90;
+        }
+
+        #modal-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
         }
 
         .modal h2 {
@@ -364,10 +527,9 @@
         .key-circle {
             width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--ink-color);
             display: flex; justify-content: center; align-items: center; cursor: pointer;
-            font-size: 0.75em; font-weight: bold; opacity: 0.5;
+            font-size: 0.75em; font-weight: bold; opacity: 1; background: #fff; color: var(--ink-color);
         }
-        .key-circle.active { background: var(--ink-color); color: var(--bg-color); opacity: 1; }
-        .key-circle.black-key { background: rgba(0,0,0,0.1); }
+        .key-circle.active { background: #000; color: #fff; opacity: 1; }
 
         #start-overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
@@ -382,6 +544,8 @@
                 gap: 5px;
             }
             .hud-item { font-size: 0.75em; }
+            .hud-group { gap: 8px; }
+            .hud-orb-panel { width: 170px; }
             
             select.midi-select {
                 max-width: 80px;
@@ -412,9 +576,9 @@
                 gap: 8px 6px;
             }
             
-            input[type=range] { width: 70px; }
+            .slider-pill { width: 160px; height: 34px; font-size: 0.7em; }
+            .slider-pill--compact { width: 130px; height: 30px; }
             .macro-slider-container label { font-size: 0.7em !important; }
-            .volume-control input[type=range] { width: 70px; }
 
             .btn-text {
                 font-size: 0.7em;
@@ -437,8 +601,48 @@
                 flex-wrap: wrap;
                 justify-content: center;
             }
-            
+
+            #game-container {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                height: auto;
+                min-height: 120vh;
+                padding-bottom: 60px;
+            }
+
+            #side-controls {
+                position: static;
+                margin-top: 20px;
+                flex-direction: column;
+                gap: 12px;
+                width: 100%;
+                margin-bottom: 40px;
+            }
+
+            details.side-panel {
+                width: 100%;
+                max-width: 320px;
+            }
+
+            #planet-list-wrap {
+                position: static;
+                transform: none;
+                margin: 20px auto 0;
+            }
+
             .modal { width: 85vw; }
+            #global-panel {
+                top: 50%;
+                left: 50%;
+                right: auto;
+                transform: translate(-50%, -50%);
+            }
+
+            body {
+                overflow: auto;
+                height: auto;
+            }
         }
     </style>
 </head>
@@ -453,74 +657,117 @@
 
     <div id="game-container">
         <div id="hud-top">
-            <h1 class="title">LES CERCLES</h1>
-            <div class="hud-item" onclick="toggleAudio()">AUDIO: <span id="audio-label">ON</span></div>
-            <div class="hud-item" onclick="openGlobal()">SETTINGS</div>
-
-            <div class="hud-item">
-                <select id="midi-select" class="midi-select" onchange="MidiEngine.selectOutput(this.value)">
-                    <option value="">MIDI...</option>
-                </select>
+            <div class="hud-group">
+                <h1 class="title">LES CERCLES</h1>
+                <div class="hud-item" onclick="toggleAudio()">AUDIO: <span id="audio-label">ON</span></div>
+            <div class="hud-item" id="settings-button" onclick="openGlobal()">SETTINGS</div>
             </div>
 
-            <div class="hud-item volume-control">
-                <label for="volume-range">VOL</label>
-                <input id="volume-range" type="range" min="0" max="2" step="0.01" value="1" oninput="updateMasterVolume(this.value)">
+            <div class="hud-group">
+                <div class="hud-item">
+                    <select id="midi-select" class="midi-select" onchange="MidiEngine.selectOutput(this.value)">
+                        <option value="">MIDI...</option>
+                    </select>
+                </div>
+
+                <div class="hud-item volume-control">
+                    <div class="slider-pill slider-pill--compact">
+                        <span class="slider-pill__label">Volume</span>
+                        <span class="slider-pill__value" id="volume-value">100%</span>
+                        <input id="volume-range" type="range" min="0" max="2" step="0.01" value="1" data-value-target="volume-value" data-format="percent" oninput="updateMasterVolume(this.value); updateSliderValue(this)">
+                    </div>
+                </div>
+
             </div>
         </div>
 
         <canvas id="mainCanvas"></canvas>
+        <div id="modal-overlay" onclick="closePanel('global-panel')"></div>
         
-        <div id="controls-bar">
-            <div class="controls-row">
-                <div class="control-group">
-                    <button id="btn-play" class="btn-text" onclick="togglePlay()">PLAY</button>
+        <div id="planet-list-wrap">
+            <button class="planet-chip-btn" onclick="addPlanet()">+</button>
+            <div id="planet-list"></div>
+            <button class="planet-chip-btn" onclick="deleteLastPlanet()">-</button>
+        </div>
 
-                    <div class="macro-slider-container">
-                        <label>SPEED</label>
-                        <input id="speed-range" type="range" min="0.1" max="3.0" step="0.1" value="1.0" oninput="updateGlobalSpeed(this.value)">
-                    </div>
-
+        <div id="side-controls">
+            <details class="side-panel" id="notes-panel">
+                <summary>NOTES</summary>
+                <div class="side-panel-content">
                     <button id="btn-dir" class="btn-text" onclick="toggleDirection()">CCW</button>
-
-                    <button id="btn-undo" class="btn-text" onclick="undoLastMove()" disabled>UNDO</button>
-                    <button class="btn-text" onclick="clearAll()">CLEAR</button>
                     <button class="btn-text" onclick="syncRPMs()">SYNC</button>
                     <button class="btn-text" onclick="evenSpacePlanets()">EVEN</button>
-                    <button class="btn-text" onclick="toggleSlingshot()">ORB</button>
-                </div>
+                    <button id="btn-play" class="btn-text btn-fixed" onclick="togglePlay()">PLAY</button>
 
-                <div class="control-group">
-                    <div class="gate-settings">
-                        <div class="macro-slider-container">
-                            <label>GATES: <span id="gate-label">1</span></label>
-                            <input id="gate-range" type="range" min="1" max="32" step="1" value="1" oninput="updateGates(this.value)">
+                    <div class="macro-slider-container">
+                        <div class="slider-pill">
+                            <span class="slider-pill__label">Speed</span>
+                            <span class="slider-pill__value" id="speed-value">1.0x</span>
+                            <input id="speed-range" type="range" min="0.1" max="3.0" step="0.1" value="1.0" data-value-target="speed-value" data-format="speed" oninput="updateGlobalSpeed(this.value); updateSliderValue(this)">
                         </div>
-
-                        <div class="macro-slider-container">
-                            <label>TRANSPOSE: <span id="transpose-label">0</span></label>
-                            <input id="transpose-range" type="range" min="-7" max="7" step="1" value="0" oninput="updateGlobalTranspose(this.value)">
-                        </div>
-
-                        <button class="btn-text" onclick="randomizeGateTranspose()">RND TRNS</button>
-                        <button class="btn-text" onclick="randomizeGateSpacing()">RND SPC</button>
-                        <button id="btn-gate-play" class="btn-text" onclick="toggleGateSpin()">PLAY</button>
-
-                        <div class="macro-slider-container">
-                            <label>GATE SPEED</label>
-                            <input id="gate-speed-range" type="range" min="1" max="60" step="1" value="10" oninput="updateGateSpinSpeed(this.value)">
-                        </div>
-
-                        <button id="btn-gate-dir" class="btn-text" onclick="toggleGateSpinDirection()">CW</button>
                     </div>
-                </div>
-            </div>
 
-            <div id="planet-list-wrap">
-                <button class="planet-chip-btn" onclick="addPlanet()">+</button>
-                <div id="planet-list"></div>
-                <button class="planet-chip-btn" onclick="deleteLastPlanet()">-</button>
-            </div>
+                </div>
+            </details>
+
+            <details class="side-panel" id="gates-panel">
+                <summary>GATES</summary>
+                <div class="side-panel-content">
+                    <button id="btn-gate-play" class="btn-text btn-fixed" onclick="toggleGateSpin()">PLAY</button>
+
+                    <div class="macro-slider-container">
+                        <div class="slider-pill">
+                            <span class="slider-pill__label">Gates</span>
+                            <span class="slider-pill__value" id="gate-label">1</span>
+                            <input id="gate-range" type="range" min="1" max="32" step="1" value="1" data-value-target="gate-label" data-format="int" oninput="updateGates(this.value); updateSliderValue(this)">
+                        </div>
+                    </div>
+
+                    <button class="btn-text" onclick="randomizeGateTranspose()">RND TRNS</button>
+                    <button class="btn-text" onclick="randomizeGateSpacing()">RND SPC</button>
+
+                    <div class="macro-slider-container">
+                        <div class="slider-pill">
+                            <span class="slider-pill__label">Gate Speed</span>
+                            <span class="slider-pill__value" id="gate-speed-label">10 RPM</span>
+                            <input id="gate-speed-range" type="range" min="1" max="60" step="1" value="10" data-value-target="gate-speed-label" data-format="rpm" oninput="updateGateSpinSpeed(this.value); updateSliderValue(this)">
+                        </div>
+                    </div>
+
+                    <div class="macro-slider-container">
+                        <div class="slider-pill">
+                            <span class="slider-pill__label">Transpose</span>
+                            <span class="slider-pill__value" id="transpose-label">0</span>
+                            <input id="transpose-range" type="range" min="-7" max="7" step="1" value="0" data-value-target="transpose-label" data-format="signed" oninput="updateGlobalTranspose(this.value); updateSliderValue(this)">
+                        </div>
+                        <div class="control-buttons-row">
+                            <button class="btn-text btn-small" onclick="adjustGlobalTranspose(-1)">-1</button>
+                            <button class="btn-text btn-small" onclick="adjustGlobalTranspose(1)">+1</button>
+                        </div>
+                    </div>
+
+                    <button id="btn-gate-dir" class="btn-text" onclick="toggleGateSpinDirection()">CW</button>
+                </div>
+            </details>
+
+            <details class="side-panel" id="orbs-panel">
+                <summary>ORBS</summary>
+                <div class="side-panel-content">
+                    <div class="control-row">
+                        <label>Trigger</label>
+                        <select id="o-trigger-inline">
+                            <option value="notes">NOTES</option>
+                            <option value="gates">GATES</option>
+                            <option value="circle">CIRCLE</option>
+                        </select>
+                    </div>
+                    <div class="control-row">
+                        <label>Collision</label>
+                        <input type="checkbox" id="o-collision-inline">
+                    </div>
+                    <button class="btn-text" onclick="toggleSlingshotArm()">ARM ORB</button>
+                </div>
+            </details>
         </div>
 
         <div id="planet-panel" class="modal">
@@ -533,12 +780,18 @@
                 <input type="number" id="p-rpm" step="0.1" min="0.1" max="100">
             </div>
             <div class="control-row">
-                <label></label>
-                <input type="range" id="p-rpm-range" min="0.1" max="100" step="0.01">
+                <div class="slider-pill">
+                    <span class="slider-pill__label">RPM</span>
+                    <span class="slider-pill__value" id="p-rpm-value">0.00</span>
+                    <input type="range" id="p-rpm-range" min="0.1" max="100" step="0.01" data-value-target="p-rpm-value" data-format="rpm-fine">
+                </div>
             </div>
             <div class="control-row">
-                <label>Volume</label>
-                <input type="range" id="p-vol" min="0" max="1" step="0.01">
+                <div class="slider-pill">
+                    <span class="slider-pill__label">Volume</span>
+                    <span class="slider-pill__value" id="p-vol-value">70%</span>
+                    <input type="range" id="p-vol" min="0" max="1" step="0.01" data-value-target="p-vol-value" data-format="percent-100">
+                </div>
             </div>
             <div class="btn-group">
                 <button class="btn-full btn-danger" onclick="deletePlanet()">DELETE</button>
@@ -549,8 +802,11 @@
         <div id="trigger-panel" class="modal">
             <h2>Trigger Settings</h2>
             <div class="control-row">
-                <label>Transpose: <span id="t-shift-label">0</span></label>
-                <input type="range" id="t-shift-range" min="-7" max="7" step="1" value="0">
+                <div class="slider-pill">
+                    <span class="slider-pill__label">Transpose</span>
+                    <span class="slider-pill__value" id="t-shift-label">0</span>
+                    <input type="range" id="t-shift-range" min="-7" max="7" step="1" value="0" data-value-target="t-shift-label" data-format="signed">
+                </div>
             </div>
             <div class="btn-group">
                 <button class="btn-full btn-danger" onclick="deleteTrigger()">DELETE</button>
@@ -611,6 +867,13 @@
             <div class="btn-group">
                 <button class="btn-full" onclick="savePattern()">SAVE .JSON</button>
                 <button class="btn-full" onclick="triggerLoad()">LOAD .JSON</button>
+            </div>
+            <div class="btn-group">
+                <button id="btn-undo" class="btn-full" onclick="undoLastMove()" disabled>UNDO</button>
+                <button id="btn-redo" class="btn-full" onclick="redoLastMove()" disabled>REDO</button>
+            </div>
+            <div class="btn-group">
+                <button class="btn-full btn-danger" onclick="clearAll()">CLEAR</button>
             </div>
         </div>
 
@@ -683,30 +946,37 @@ STATE.gateSpinDirection = STATE.direction * -1;
 
 const UNDO_LIMIT = 20;
 const undoStack = [];
+const redoStack = [];
 
 function createUndoSnapshot() {
     return {
         planets: STATE.planets.map(p => ({ ...p })),
         triggers: STATE.triggers.map(t => ({ ...t })),
+        projectiles: STATE.projectiles.map(o => ({ ...o })),
         root: STATE.root,
         scale: STATE.scale,
         customScale: [...STATE.customScale],
         globalSpeed: STATE.globalSpeed,
         gateTranspose: STATE.gateTranspose,
         direction: STATE.direction,
-        isPaused: STATE.isPaused
+        isPaused: STATE.isPaused,
+        gateSpinActive: STATE.gateSpinActive,
+        gateSpinRPM: STATE.gateSpinRPM,
+        gateSpinDirection: STATE.gateSpinDirection
     };
 }
 
 function pushUndoState() {
     undoStack.push(createUndoSnapshot());
     if (undoStack.length > UNDO_LIMIT) undoStack.shift();
-    updateUndoButton();
+    redoStack.length = 0;
+    updateUndoRedoButtons();
 }
 
 function applyUndoSnapshot(snapshot) {
     STATE.planets = snapshot.planets.map(p => ({ ...p }));
     STATE.triggers = snapshot.triggers.map(t => ({ ...t }));
+    STATE.projectiles = (snapshot.projectiles || []).map(o => ({ ...o }));
     STATE.root = snapshot.root;
     STATE.scale = snapshot.scale;
     STATE.customScale = [...snapshot.customScale];
@@ -714,6 +984,9 @@ function applyUndoSnapshot(snapshot) {
     STATE.gateTranspose = snapshot.gateTranspose ?? 0;
     STATE.direction = snapshot.direction;
     STATE.isPaused = snapshot.isPaused;
+    STATE.gateSpinActive = snapshot.gateSpinActive ?? false;
+    STATE.gateSpinRPM = snapshot.gateSpinRPM ?? 10;
+    STATE.gateSpinDirection = snapshot.gateSpinDirection ?? (STATE.direction * -1);
     STATE.orbPanelPrevSlingshot = null;
 
     STATE.editingId = null;
@@ -735,23 +1008,36 @@ function applyUndoSnapshot(snapshot) {
     const transposeRange = document.getElementById('transpose-range');
     if (transposeRange) transposeRange.value = STATE.gateTranspose;
     const transposeLabel = document.getElementById('transpose-label');
-    if (transposeLabel) transposeLabel.innerText = STATE.gateTranspose;
+    if (transposeLabel) transposeLabel.innerText = formatSliderValue('signed', STATE.gateTranspose);
     syncGateUI();
+    updateGateSpinUI();
     updatePlayButton();
     updatePlanetList();
+    refreshSliderDisplays();
 }
 
 function undoLastMove() {
     if (undoStack.length === 0) return;
+    redoStack.push(createUndoSnapshot());
     const snapshot = undoStack.pop();
     applyUndoSnapshot(snapshot);
-    updateUndoButton();
+    updateUndoRedoButtons();
 }
 
-function updateUndoButton() {
+function redoLastMove() {
+    if (redoStack.length === 0) return;
+    undoStack.push(createUndoSnapshot());
+    const snapshot = redoStack.pop();
+    applyUndoSnapshot(snapshot);
+    updateUndoRedoButtons();
+}
+
+function updateUndoRedoButtons() {
     const btn = document.getElementById('btn-undo');
     if (!btn) return;
     btn.disabled = undoStack.length === 0;
+    const redoBtn = document.getElementById('btn-redo');
+    if (redoBtn) redoBtn.disabled = redoStack.length === 0;
 }
 
 /**
@@ -987,6 +1273,7 @@ for(let i=0; i<4; i++) {
 const canvas = document.getElementById('mainCanvas');
 const ctx = canvas.getContext('2d');
 let canvasW, canvasH, centerX, centerY;
+let isMobileLayout = null;
 
 function resize() {
     canvasW = window.innerWidth;
@@ -994,12 +1281,26 @@ function resize() {
     canvas.width = canvasW;
     canvas.height = canvasH;
     centerX = canvasW/2;
-    centerY = canvasH/2;
+    centerY = canvasW < 768 ? canvasH * 0.32 : canvasH / 2;
     const dim = Math.min(canvasW, canvasH);
-    STATE.orbitRadius = dim * (dim < 600 ? 0.35 : 0.35);
+    STATE.orbitRadius = dim * (dim < 600 ? 0.3 : 0.35);
+    updateSidePanelsForViewport();
 }
 window.addEventListener('resize', resize);
 resize();
+
+function updateSidePanelsForViewport() {
+    const isMobile = window.innerWidth <= 768;
+    if (isMobileLayout === isMobile) return;
+    isMobileLayout = isMobile;
+    const notesPanel = document.getElementById('notes-panel');
+    const gatesPanel = document.getElementById('gates-panel');
+    const orbsPanel = document.getElementById('orbs-panel');
+    if (!notesPanel || !gatesPanel || !orbsPanel) return;
+    notesPanel.open = !isMobile;
+    gatesPanel.open = !isMobile;
+    orbsPanel.open = !isMobile;
+}
 
 function toggleAudio() { AudioEngine.toggle(); }
 
@@ -1007,6 +1308,76 @@ function updateMasterVolume(value) {
     const volume = parseFloat(value) * 0.5;
     STATE.masterVolume = volume;
     AudioEngine.setVolume(volume);
+}
+
+function syncOrbInlineControls() {
+    const triggerInline = document.getElementById('o-trigger-inline');
+    const collisionInline = document.getElementById('o-collision-inline');
+    if (triggerInline) triggerInline.value = STATE.orbSettings.triggerMode || 'notes';
+    if (collisionInline) collisionInline.checked = !!STATE.orbSettings.collision;
+}
+
+function formatSliderValue(format, value) {
+    const num = parseFloat(value);
+    if (Number.isNaN(num)) return value;
+    switch (format) {
+        case 'percent':
+            return `${Math.round(num * 100)}%`;
+        case 'percent-100':
+            return `${Math.round(num * 100)}%`;
+        case 'speed':
+            return `${num.toFixed(1)}x`;
+        case 'rpm':
+            return `${Math.round(num)} RPM`;
+        case 'rpm-fine':
+            return num.toFixed(2);
+        case 'signed': {
+            const intVal = Math.round(num);
+            return intVal > 0 ? `+${intVal}` : `${intVal}`;
+        }
+        case 'int':
+            return `${Math.round(num)}`;
+        default:
+            return `${num}`;
+    }
+}
+
+function updateSliderValue(input) {
+    if (!input) return;
+    const targetId = input.dataset.valueTarget;
+    if (!targetId) return;
+    const target = document.getElementById(targetId);
+    if (!target) return;
+    const format = input.dataset.format || 'raw';
+    target.textContent = formatSliderValue(format, input.value);
+    updateSliderFill(input);
+}
+
+function updateSliderFill(input) {
+    const container = input.closest('.slider-pill');
+    if (!container) return;
+    const min = parseFloat(input.min || 0);
+    const max = parseFloat(input.max || 100);
+    const val = parseFloat(input.value || 0);
+    const percent = max > min ? ((val - min) / (max - min)) * 100 : 0;
+    const clamped = Math.max(0, Math.min(100, percent));
+    container.style.setProperty('--slider-fill', `${clamped}%`);
+}
+
+function refreshSliderDisplays() {
+    const ids = [
+        'volume-range',
+        'speed-range',
+        'gate-range',
+        'transpose-range',
+        'gate-speed-range',
+        'p-rpm-range',
+        'p-vol'
+    ];
+    ids.forEach(id => {
+        const input = document.getElementById(id);
+        if (input) updateSliderValue(input);
+    });
 }
 
 function updatePlayButton() {
@@ -1021,7 +1392,19 @@ function updateGateSpinUI() {
     const dirBtn = document.getElementById('btn-gate-dir');
     if (dirBtn) dirBtn.innerText = STATE.gateSpinDirection === 1 ? "CW" : "CCW";
     const speedRange = document.getElementById('gate-speed-range');
-    if (speedRange) speedRange.value = STATE.gateSpinRPM;
+    if (speedRange) {
+        speedRange.value = STATE.gateSpinRPM;
+        updateSliderValue(speedRange);
+    }
+}
+
+const gateSpeedRange = document.getElementById('gate-speed-range');
+if (gateSpeedRange) {
+    const stopGateSpeedAdjust = () => { gateSpeedIsAdjusting = false; };
+    gateSpeedRange.addEventListener('change', stopGateSpeedAdjust);
+    gateSpeedRange.addEventListener('pointerup', stopGateSpeedAdjust);
+    gateSpeedRange.addEventListener('touchend', stopGateSpeedAdjust, { passive: true });
+    gateSpeedRange.addEventListener('blur', stopGateSpeedAdjust);
 }
 
 function togglePlay() {
@@ -1040,16 +1423,23 @@ function toggleDirection() {
 }
 
 function toggleGateSpin() {
+    pushUndoState();
     STATE.gateSpinActive = !STATE.gateSpinActive;
     updateGateSpinUI();
 }
 
 function toggleGateSpinDirection() {
+    pushUndoState();
     STATE.gateSpinDirection *= -1;
     updateGateSpinUI();
 }
 
+let gateSpeedIsAdjusting = false;
 function updateGateSpinSpeed(val) {
+    if (!gateSpeedIsAdjusting) {
+        pushUndoState();
+        gateSpeedIsAdjusting = true;
+    }
     STATE.gateSpinRPM = Math.min(60, Math.max(1, parseFloat(val)));
     updateGateSpinUI();
 }
@@ -1058,7 +1448,10 @@ function syncGateUI() {
     const gateCount = STATE.triggers.length;
     document.getElementById('gate-label').innerText = gateCount;
     const gateRange = document.getElementById('gate-range');
-    if (gateRange) gateRange.value = gateCount;
+    if (gateRange) {
+        gateRange.value = gateCount;
+        updateSliderValue(gateRange);
+    }
 }
 
 function updatePlanetList() {
@@ -1086,7 +1479,30 @@ function updatePlanetList() {
 function openGlobal() {
     document.getElementById('g-root').value = STATE.root;
     document.getElementById('g-scale').value = STATE.scale;
-    document.getElementById('global-panel').style.display = 'block';
+    const panel = document.getElementById('global-panel');
+    const settingsButton = document.getElementById('settings-button');
+    const container = document.getElementById('game-container');
+    panel.style.display = 'block';
+    if (window.innerWidth <= 768) {
+        panel.style.top = '50%';
+        panel.style.left = '50%';
+        panel.style.transform = 'translate(-50%, -50%)';
+    } else {
+        panel.style.transform = 'none';
+    }
+    if (panel && settingsButton && container) {
+        const btnRect = settingsButton.getBoundingClientRect();
+        const containerRect = container.getBoundingClientRect();
+        const desiredTop = btnRect.bottom - containerRect.top + 8;
+        const desiredLeft = btnRect.left - containerRect.left;
+        const maxLeft = containerRect.width - panel.offsetWidth - 10;
+        if (window.innerWidth > 768) {
+            panel.style.top = `${Math.max(10, desiredTop)}px`;
+            panel.style.left = `${Math.max(10, Math.min(desiredLeft, maxLeft))}px`;
+        }
+    }
+    document.getElementById('modal-overlay').classList.add('active');
+    refreshSliderDisplays();
 }
 
 function applyGlobal() {
@@ -1153,7 +1569,6 @@ function openScaleEditor() {
     notes.forEach((n, i) => {
         const div = document.createElement('div');
         div.className = 'key-circle';
-        if (n.includes('#')) div.classList.add('black-key');
         div.innerText = n;
         
         if (STATE.customScale.includes(i)) {
@@ -1194,6 +1609,10 @@ function toggleSlingshot() {
 
     STATE.slingshot.active = true;
     openOrbPanel();
+}
+
+function toggleSlingshotArm() {
+    STATE.slingshot.active = !STATE.slingshot.active;
 }
 
 function savePattern() {
@@ -1250,14 +1669,16 @@ function handleFileLoad(input) {
             const transposeRange = document.getElementById('transpose-range');
             if (transposeRange) transposeRange.value = STATE.gateTranspose;
             const transposeLabel = document.getElementById('transpose-label');
-            if (transposeLabel) transposeLabel.innerText = STATE.gateTranspose;
+            if (transposeLabel) transposeLabel.innerText = formatSliderValue('signed', STATE.gateTranspose);
             syncGateUI();
             updateGateSpinUI();
+            refreshSliderDisplays();
 
             updatePlanetList();
             closePanel('global-panel');
             undoStack.length = 0;
-            updateUndoButton();
+            redoStack.length = 0;
+            updateUndoRedoButtons();
             alert("Pattern Loaded!");
         } catch(err) {
             console.error(err);
@@ -1275,7 +1696,9 @@ function updateGlobalSpeed(val) {
         if (p) {
              const effectiveRPM = p.rpm * STATE.globalSpeed;
              document.getElementById('p-rpm').value = effectiveRPM.toFixed(2);
-             document.getElementById('p-rpm-range').value = effectiveRPM.toFixed(2);
+             const rpmRange = document.getElementById('p-rpm-range');
+             rpmRange.value = effectiveRPM.toFixed(2);
+             updateSliderValue(rpmRange);
         }
     }
 }
@@ -1311,17 +1734,33 @@ function updateGlobalTranspose(val) {
     pushUndoState();
     STATE.gateTranspose = clampShift(parseInt(val, 10) || 0);
     const transposeRange = document.getElementById('transpose-range');
-    if (transposeRange) transposeRange.value = STATE.gateTranspose;
+    if (transposeRange) {
+        transposeRange.value = STATE.gateTranspose;
+        updateSliderValue(transposeRange);
+    }
     const transposeLabel = document.getElementById('transpose-label');
-    if (transposeLabel) transposeLabel.innerText = STATE.gateTranspose;
+    if (transposeLabel) transposeLabel.innerText = formatSliderValue('signed', STATE.gateTranspose);
     if (STATE.editingTriggerId) {
         const t = STATE.triggers.find(x => x.id === STATE.editingTriggerId);
         if (t) {
             const shiftRange = document.getElementById('t-shift-range');
             const shiftLabel = document.getElementById('t-shift-label');
-            if (shiftRange) shiftRange.value = clampShift(t.shift);
+            if (shiftRange) {
+                shiftRange.value = clampShift(t.shift);
+                updateSliderValue(shiftRange);
+            }
             if (shiftLabel) shiftLabel.innerText = getEffectiveTriggerShift(t.shift);
         }
+    }
+}
+
+function adjustGlobalTranspose(delta) {
+    const next = clampShift((STATE.gateTranspose || 0) + delta);
+    updateGlobalTranspose(next);
+    const transposeRange = document.getElementById('transpose-range');
+    if (transposeRange) {
+        transposeRange.value = next;
+        updateSliderValue(transposeRange);
     }
 }
 
@@ -1375,8 +1814,12 @@ function openPlanet(p) {
 
     const effectiveRPM = p.rpm * STATE.globalSpeed;
     document.getElementById('p-rpm').value = effectiveRPM.toFixed(2);
-    document.getElementById('p-rpm-range').value = effectiveRPM.toFixed(2);
-    document.getElementById('p-vol').value = p.velocity;
+    const rpmRange = document.getElementById('p-rpm-range');
+    rpmRange.value = effectiveRPM.toFixed(2);
+    updateSliderValue(rpmRange);
+    const volumeRange = document.getElementById('p-vol');
+    volumeRange.value = p.velocity;
+    updateSliderValue(volumeRange);
     panel.style.display = 'block';
 }
 
@@ -1392,7 +1835,9 @@ function openTrigger(t) {
     closePanel('orb-panel');
     closePanel('planet-panel');
     STATE.editingTriggerId = t.id;
-    document.getElementById('t-shift-range').value = clampShift(t.shift);
+    const shiftRange = document.getElementById('t-shift-range');
+    shiftRange.value = clampShift(t.shift);
+    updateSliderValue(shiftRange);
     document.getElementById('t-shift-label').innerText = getEffectiveTriggerShift(t.shift);
     document.getElementById('trigger-panel').style.display = 'block';
 }
@@ -1410,6 +1855,7 @@ function openOrbPanel() {
 
     triggerSel.value = target.triggerMode;
     collisionToggle.checked = !!target.collision;
+    syncOrbInlineControls();
 
     if (STATE.orbPanelPrevSlingshot === null) {
         STATE.orbPanelPrevSlingshot = STATE.slingshot.active;
@@ -1427,6 +1873,7 @@ function deleteTrigger() {
 
 document.getElementById('t-shift-range').oninput = (e) => {
     const val = clampShift(parseInt(e.target.value, 10) || 0);
+    updateSliderValue(e.target);
     const t = STATE.triggers.find(x => x.id === STATE.editingTriggerId);
     if (t) {
         pushUndoState();
@@ -1474,6 +1921,8 @@ function updateGates(val) {
     const count = parseInt(val);
     pushUndoState();
     document.getElementById('gate-label').innerText = count;
+    const gateRange = document.getElementById('gate-range');
+    if (gateRange) updateSliderValue(gateRange);
     const previousShifts = STATE.triggers
         .slice()
         .sort((a, b) => a.angle - b.angle)
@@ -1522,11 +1971,31 @@ document.getElementById('p-note').onchange = (e) => {
 
 document.getElementById('o-trigger').onchange = (e) => {
     STATE.orbSettings.triggerMode = e.target.value;
+    syncOrbInlineControls();
 };
 
 document.getElementById('o-collision').onchange = (e) => {
     STATE.orbSettings.collision = e.target.checked;
+    syncOrbInlineControls();
 };
+
+const orbTriggerInline = document.getElementById('o-trigger-inline');
+if (orbTriggerInline) {
+    orbTriggerInline.onchange = (e) => {
+        STATE.orbSettings.triggerMode = e.target.value;
+        const modalTrigger = document.getElementById('o-trigger');
+        if (modalTrigger) modalTrigger.value = e.target.value;
+    };
+}
+
+const orbCollisionInline = document.getElementById('o-collision-inline');
+if (orbCollisionInline) {
+    orbCollisionInline.onchange = (e) => {
+        STATE.orbSettings.collision = e.target.checked;
+        const modalCollision = document.getElementById('o-collision');
+        if (modalCollision) modalCollision.checked = e.target.checked;
+    };
+}
 
 function updatePlanetRPM(inputVal) {
     const p = STATE.planets.find(x => x.id === STATE.editingId);
@@ -1539,7 +2008,10 @@ document.getElementById('p-rpm').oninput = (e) => {
     const inputVal = parseFloat(e.target.value);
     updatePlanetRPM(inputVal);
     const range = document.getElementById('p-rpm-range');
-    if (range && !isNaN(inputVal)) range.value = inputVal;
+    if (range && !isNaN(inputVal)) {
+        range.value = inputVal;
+        updateSliderValue(range);
+    }
 };
 
 document.getElementById('p-rpm-range').oninput = (e) => {
@@ -1547,15 +2019,20 @@ document.getElementById('p-rpm-range').oninput = (e) => {
     updatePlanetRPM(inputVal);
     const numberInput = document.getElementById('p-rpm');
     if (numberInput && !isNaN(inputVal)) numberInput.value = inputVal.toFixed(2);
+    updateSliderValue(e.target);
 };
 
 document.getElementById('p-vol').oninput = (e) => {
     const p = STATE.planets.find(x => x.id === STATE.editingId);
     if(p) p.velocity = parseFloat(e.target.value);
+    updateSliderValue(e.target);
 };
 
 function closePanel(id) {
     document.getElementById(id).style.display = 'none';
+    if (id === 'global-panel') {
+        document.getElementById('modal-overlay').classList.remove('active');
+    }
     if(id === 'planet-panel') STATE.editingId = null;
     if(id === 'trigger-panel') STATE.editingTriggerId = null;
     if(id === 'orb-panel') {
@@ -1817,6 +2294,7 @@ function handleEnd() {
         
         // Spawn New Orb (Limit 32)
         if (STATE.projectiles.length < 32) {
+            pushUndoState();
             STATE.projectiles.push({
                 id: Date.now() + Math.random(),
                 x: centerX,
@@ -2180,22 +2658,28 @@ function loop(time) {
     });
 }
 
-document.getElementById('start-overlay').addEventListener('click', () => {
+function initializeApp() {
     AudioEngine.init();
     MidiEngine.init();
     updatePlanetList();
+    syncOrbInlineControls();
+    refreshSliderDisplays();
     STATE.isRunning = true;
     lastTime = 0; 
     document.getElementById('start-overlay').style.display = 'none';
     updatePlayButton();
     updateGateSpinUI();
     requestAnimationFrame(loop);
+}
+
+document.getElementById('start-overlay').addEventListener('click', () => {
+    initializeApp();
 });
 
 // Touch to start overlay
 document.getElementById('start-overlay').addEventListener('touchstart', (e) => {
     e.preventDefault();
-    document.getElementById('start-overlay').click();
+    initializeApp();
 }, {passive: false});
 
 </script>
