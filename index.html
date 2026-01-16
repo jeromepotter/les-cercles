@@ -182,6 +182,46 @@
             align-items: center;
             pointer-events: auto;
         }
+        .control-row-split {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    width: 100%;
+}
+
+.control-group-inline {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+}
+
+select {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    border: 1px solid rgba(0,0,0,0.2);
+    border-radius: 0;
+    background-color: transparent;
+    padding: 6px 24px 6px 8px;
+    font-family: inherit;
+    font-weight: 600;
+    cursor: pointer;
+    width: auto; /* Allow it to shrink to fit row */
+    
+    /* Custom Down Arrow (Light Mode) */
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23333' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 2px center;
+    background-size: 14px;
+}
+
+/* Custom Down Arrow (Dark Mode) */
+body.dark-mode select {
+    border-color: rgba(255,255,255,0.2);
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23e0e0e0' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+}
 
         /* BUTTONS */
         .btn-circle {
@@ -955,24 +995,25 @@
                             <span class="panel-caret" aria-hidden="true"></span>
                         </span>
                         <button class="btn-text" onclick="event.stopPropagation(); toggleSlingshotArm()">ARM ORB</button>
-                        <button class="btn-text" onclick="event.stopPropagation(); removeAllOrbs()">REMOVE ORBS</button>
-                        <button class="btn-text" onclick="event.stopPropagation(); randomizeOrbSizes()">RANDOM SIZE</button>
+                        <button class="btn-text" onclick="event.stopPropagation(); removeAllOrbs()">CLEAR</button>
+                        <button class="btn-text" onclick="event.stopPropagation(); randomizeOrbSizes()">RND SIZE</button>
                     </summary>
-                    <div class="side-panel-content">
-                        <div class="control-row">
-                            <label>Trigger</label>
-                            <select id="o-trigger-inline">
-                                <option value="notes">NOTES</option>
-                                <option value="gates">GATES</option>
-                                <option value="circle">CIRCLE</option>
-                                <option value="orb" data-requires-collision="true" disabled>ORB</option>
-                                <option value="orb-circle" data-requires-collision="true" disabled>ORB + CIRCLE</option>
-                            </select>
-                        </div>
-                        <div class="control-row">
-                            <label>Collision</label>
-                            <input type="checkbox" id="o-collision-inline" class="collision-toggle">
-                        </div>
+                    <div class="control-row-split">
+    <div class="control-group-inline">
+        <label>Trigger</label>
+        <select id="o-trigger-inline">
+            <option value="notes">NOTES</option>
+            <option value="gates">GATES</option>
+            <option value="circle">CIRCLE</option>
+            <option value="orb" data-requires-collision="true" disabled>ORB</option>
+            <option value="orb-circle" data-requires-collision="true" disabled>ORB + CIRCLE</option>
+        </select>
+    </div>
+    <div class="control-group-inline">
+        <label>Collision</label>
+        <input type="checkbox" id="o-collision-inline" class="collision-toggle">
+    </div>
+</div>
                         <div class="panel-slider-row">
                             <div class="macro-slider-container">
                                 <div class="slider-pill slider-pill--compact">
