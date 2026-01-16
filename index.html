@@ -17,6 +17,9 @@
             --shadow: 0 2px 5px rgba(0,0,0,0.1);
             --slider-pill-bg: rgba(0,0,0,0.12);
             --slider-pill-border: rgba(0,0,0,0.08);
+            --panel-surface: rgba(255,255,255,0.6);
+            --panel-surface-strong: rgba(255,255,255,0.8);
+            --panel-border-soft: rgba(0,0,0,0.08);
         }
 
         /* DARK MODE overrides */
@@ -28,6 +31,9 @@
             --shadow: 0 4px 10px rgba(0,0,0,0.4);
             --slider-pill-bg: rgba(255,255,255,0.12);
             --slider-pill-border: rgba(255,255,255,0.12);
+            --panel-surface: rgba(42,42,42,0.9);
+            --panel-surface-strong: rgba(52,52,52,0.95);
+            --panel-border-soft: rgba(255,255,255,0.12);
         }
 
         @font-face {
@@ -235,10 +241,10 @@
         details.side-panel {
             pointer-events: auto;
             width: 260px;
-            border: 1px solid rgba(0,0,0,0.08);
-            border-radius: 16px;
+            border: 1px solid var(--panel-border-soft);
+            border-radius: 0;
             padding: 10px 12px;
-            background: rgba(255,255,255,0.6);
+            background: var(--panel-surface);
             backdrop-filter: blur(6px);
             display: flex;
             flex-direction: column;
@@ -260,6 +266,14 @@
 
         details.side-panel summary::-webkit-details-marker {
             display: none;
+        }
+
+        details.side-panel summary::marker {
+            content: "";
+        }
+
+        summary.panel-header-row::marker {
+            content: "";
         }
 
         .side-panel-content {
@@ -286,27 +300,29 @@
             gap: 8px;
             align-items: center;
             margin-bottom: 8px;
-            border: 1px solid rgba(0,0,0,0.08);
-            border-radius: 999px;
+            border: none;
+            border-radius: 0;
             padding: 6px 10px;
-            background: rgba(255,255,255,0.6);
+            background: transparent;
         }
 
         .panel-title {
             flex: 1 1 0;
             display: flex;
-            justify-content: center;
+            justify-content: flex-start;
+            text-align: left;
+            padding-left: 6px;
         }
 
         summary.panel-header-row .btn-text {
             flex: 1 1 0;
-            border-radius: 999px;
+            border-radius: 0;
         }
 
         .panel-button-row .btn-text,
         .control-buttons-row .btn-text {
             border: 1px solid rgba(0,0,0,0.2);
-            border-radius: 999px;
+            border-radius: 0;
         }
 
         .panel-slider-row {
@@ -364,15 +380,17 @@
             gap: 10px;
             align-items: center;
             pointer-events: auto;
-            background: rgba(255,255,255,0.2);
+            background: var(--panel-surface);
             padding: 8px 16px;
-            border-radius: 20px;
+            border-radius: 0;
             backdrop-filter: blur(5px);
-            border: 1px solid rgba(255,255,255,0.1);
+            border: 1px solid var(--panel-border-soft);
             max-width: 90vw;
             overflow-x: auto;
             z-index: 15;
             overflow: hidden; 
+            position: relative;
+            top: -5px;
         }
 
         #planet-list-wrap .planet-chip-btn {
@@ -484,7 +502,7 @@
             position: relative;
             width: 190px;
             height: 40px;
-            border-radius: 999px;
+            border-radius: 0;
             background: linear-gradient(
                 to right,
                 rgba(0,0,0,0.22) 0%,
@@ -687,24 +705,41 @@
 
             #controls-footer {
                 height: auto;
-                padding: 10px 20px 20px;
+                gap: 8px;
+                padding: 4px 16px 16px;
             }
 
             #side-controls {
                 flex-direction: column;
-                gap: 20px;
+                gap: 12px;
                 width: 100%;
-                margin-bottom: 20px;
+                margin-bottom: 12px;
+                align-items: center;
             }
 
             details.side-panel {
                 width: 100%;
                 max-width: 320px;
-                margin: 0;
+                margin: 0 auto;
             }
 
             #planet-list-wrap {
-                margin: 20px auto 0;
+                margin: 0 auto;
+            }
+
+            summary.panel-header-row {
+                flex-wrap: wrap;
+                justify-content: center;
+                row-gap: 6px;
+            }
+
+            summary.panel-header-row .panel-title {
+                flex: 1 1 100%;
+                justify-content: flex-start;
+            }
+
+            summary.panel-header-row .btn-text {
+                flex: 0 1 auto;
             }
 
             .modal { width: 85vw; }
@@ -805,6 +840,10 @@
                                     <span class="slider-pill__label">Gates</span>
                                     <span class="slider-pill__value" id="gate-label">1</span>
                                     <input id="gate-range" type="range" min="1" max="32" step="1" value="1" data-value-target="gate-label" data-format="int" oninput="updateGates(this.value); updateSliderValue(this)">
+                                </div>
+                                <div class="control-buttons-row">
+                                    <button class="btn-text btn-small" onclick="event.stopPropagation(); adjustGateCount(-1)">-1</button>
+                                    <button class="btn-text btn-small" onclick="event.stopPropagation(); adjustGateCount(1)">+1</button>
                                 </div>
                             </div>
 
@@ -1082,7 +1121,6 @@ function applyUndoSnapshot(snapshot) {
     document.getElementById('planet-panel').style.display = 'none';
     document.getElementById('trigger-panel').style.display = 'none';
     document.getElementById('orb-panel').style.display = 'none';
-    document.getElementById('global-panel').style.display = 'none';
 
     const btn = document.getElementById('btn-dir');
     const isCW = STATE.direction === 1;
@@ -1218,6 +1256,20 @@ const AudioEngine = (() => {
         if(ctx.state === 'suspended') ctx.resume();
     }
 
+    function resume() {
+        if (!STATE.audioEnabled) return;
+        if (!ctx) {
+            init();
+            return;
+        }
+        if (ctx.state === 'closed') {
+            ctx = null;
+            init();
+            return;
+        }
+        if (ctx.state === 'suspended') ctx.resume();
+    }
+
     function setVolume(value) {
         if(!ctx || !masterGain) return;
         const target = STATE.audioEnabled ? value : 0;
@@ -1267,7 +1319,7 @@ const AudioEngine = (() => {
         osc.stop(t + 1.3);
     }
 
-    return { init, toggle, playNote, setVolume };
+    return { init, toggle, playNote, setVolume, resume };
 })();
 
 /**
@@ -1368,7 +1420,7 @@ function resize() {
     const isMobile = canvasW < 768;
     const footer = document.getElementById('controls-footer');
     const footerHeight = footer ? footer.offsetHeight : 0;
-    const minCanvas = Math.floor(window.innerHeight * 0.8);
+    const minCanvas = Math.floor(window.innerHeight * 0.68);
     const available = window.innerHeight - footerHeight;
     const displayHeight = isMobile ? Math.max(minCanvas, available) : Math.max(available, 200);
     canvas.width = canvasW;
@@ -2013,12 +2065,25 @@ function evenSpacePlanets() {
     });
 }
 
+function adjustGateCount(delta) {
+    const gateRange = document.getElementById('gate-range');
+    const min = gateRange ? parseInt(gateRange.min, 10) : 1;
+    const max = gateRange ? parseInt(gateRange.max, 10) : 32;
+    const current = gateRange ? parseInt(gateRange.value, 10) : STATE.triggers.length;
+    const next = Math.min(max, Math.max(min, current + delta));
+    if (gateRange) gateRange.value = next;
+    updateGates(next);
+}
+
 function updateGates(val) {
-    const count = parseInt(val);
+    const count = Math.min(32, Math.max(1, parseInt(val, 10) || 1));
     pushUndoState();
     document.getElementById('gate-label').innerText = count;
     const gateRange = document.getElementById('gate-range');
-    if (gateRange) updateSliderValue(gateRange);
+    if (gateRange) {
+        gateRange.value = count;
+        updateSliderValue(gateRange);
+    }
     const previousShifts = STATE.triggers
         .slice()
         .sort((a, b) => a.angle - b.angle)
@@ -2768,6 +2833,11 @@ function initializeApp() {
     requestAnimationFrame(loop);
 }
 
+function resumeAudioEngineIfNeeded() {
+    if (!STATE.isRunning) return;
+    AudioEngine.resume();
+}
+
 document.getElementById('start-overlay').addEventListener('click', () => {
     initializeApp();
 });
@@ -2777,6 +2847,21 @@ document.getElementById('start-overlay').addEventListener('touchstart', (e) => {
     e.preventDefault();
     initializeApp();
 }, {passive: false});
+
+document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) {
+        resumeAudioEngineIfNeeded();
+        setTimeout(resumeAudioEngineIfNeeded, 200);
+    }
+});
+
+window.addEventListener('pageshow', () => resumeAudioEngineIfNeeded());
+window.addEventListener('focus', () => resumeAudioEngineIfNeeded());
+document.addEventListener('touchstart', () => resumeAudioEngineIfNeeded(), { passive: true });
+document.addEventListener('touchend', () => resumeAudioEngineIfNeeded(), { passive: true });
+document.addEventListener('pointerdown', () => resumeAudioEngineIfNeeded(), { passive: true });
+document.addEventListener('pointerup', () => resumeAudioEngineIfNeeded(), { passive: true });
+document.addEventListener('click', () => resumeAudioEngineIfNeeded(), { passive: true });
 
 </script>
 </body>
