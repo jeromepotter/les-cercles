@@ -923,6 +923,47 @@ summary.panel-header-row .panel-caret {
             #particles-slot {
                 display: none;
             }
+            /* --- MOBILE CARAT (ARROW) STYLES --- */
+
+/* 1. Position the header row to act as an anchor */
+.panel-header-row {
+    position: relative; /* Allows us to place the arrow absolutely inside */
+    padding-right: 30px; /* Ensure text doesn't overlap the arrow */
+}
+
+/* 2. Create the Arrow Shape */
+.panel-header-row::after {
+    content: '';
+    position: absolute;
+    right: 15px;         /* Position from the right edge */
+    top: 50%;            /* Center vertically */
+    margin-top: -2px;    /* Fine-tune vertical center */
+    
+    width: 8px;          /* Size of the arrow */
+    height: 8px;
+    
+    /* This creates the "Chevron" shape using borders */
+    border-right: 3px solid var(--ink-color); 
+    border-bottom: 3px solid var(--ink-color);
+    
+    /* Animation speed */
+    transition: transform 0.25s ease;
+    
+    /* rounded corners to match your screenshot softness */
+    border-bottom-right-radius: 2px; 
+}
+
+/* 3. DEFAULT STATE (Expanded): Point UP */
+/* This matches your 'Screen Shot 12.29.01' (Up Arrow) */
+.panel-header-row::after {
+    transform: translateY(2px) rotate(225deg); 
+}
+
+/* 4. COLLAPSED STATE: Point DOWN */
+/* This matches your 'Screen Shot 12.28.50' (Down Arrow) */
+.side-panel.collapsed .panel-header-row::after {
+    transform: translateY(-4px) rotate(45deg); 
+}
 
             .side-panel.collapsed .side-panel-content {
                 display: none;
