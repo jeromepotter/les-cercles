@@ -278,17 +278,17 @@ body.dark-mode select {
             margin-top: 6px;
         }
 
-       .side-panel {
-    pointer-events: auto;
-    width: 260px;
-    border: 1px solid var(--panel-border-soft);
-    border-radius: 0;
-    padding: 10px 12px;
-    background: var(--panel-surface);
-    backdrop-filter: blur(6px);
-    display: flex;
-    flex-direction: column;
-}
+        .side-panel {
+            pointer-events: auto;
+            width: 260px;
+            border: 1px solid var(--panel-border-soft);
+            border-radius: 0;
+            padding: 10px 12px;
+            background: var(--panel-surface);
+            backdrop-filter: blur(6px);
+            display: flex;
+            flex-direction: column;
+        }
 
         details.side-panel summary {
             list-style: none;
@@ -316,14 +316,14 @@ body.dark-mode select {
             content: "";
         }
 
-     .side-panel-content {
-    margin-top: 10px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    flex: 1;
-    padding-bottom: 6px;
-}
+        .side-panel-content {
+            margin-top: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            flex: 1;
+            padding-bottom: 6px;
+        }
 
         .panel-button-row {
             display: flex;
@@ -336,18 +336,18 @@ body.dark-mode select {
             flex: 1 1 0;
         }
 
-   .panel-header-row {
-    display: flex;
-    gap: 8px;
-    align-items: center;
-    margin-bottom: 8px;
-    border: none;
-    border-radius: 0;
-    padding: 6px 10px;
-    background: transparent;
-    flex-wrap: wrap;
-    row-gap: 6px;
-}
+        .panel-header-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            margin-bottom: 8px;
+            border: none;
+            border-radius: 0;
+            padding: 6px 10px;
+            background: transparent;
+            flex-wrap: wrap;
+            row-gap: 6px;
+        }
         .panel-title-row {
             flex: 1 1 100%;
             display: flex;
@@ -367,8 +367,8 @@ body.dark-mode select {
             flex: 0 1 auto;
             border-radius: 0;
         }
-summary.panel-header-row .panel-caret {
-            margin-left: auto;
+        summary.panel-header-row .panel-caret {
+            margin-left: 6px;
             font-size: 1.1em;   /* Larger */
             font-weight: 900;   /* Bolder */
             opacity: 1;         /* Fully visible */
@@ -429,6 +429,51 @@ summary.panel-header-row .panel-caret {
             margin-top: -10px;
         }
 
+        @media (min-width: 769px) {
+            #controls-footer {
+                min-height: 80px;
+                padding: 10px 20px 16px;
+                gap: 8px;
+            }
+
+            .side-panel {
+                padding: 6px 8px;
+            }
+
+            .panel-header-row {
+                margin-bottom: 4px;
+                padding: 4px 6px;
+                row-gap: 4px;
+            }
+
+            .side-panel-content {
+                margin-top: 6px;
+                gap: 6px;
+                padding-bottom: 4px;
+            }
+
+            .btn-text {
+                font-size: 0.75em;
+                padding: 6px 8px;
+            }
+
+            .slider-pill {
+                height: 20px;
+                font-size: 0.7em;
+                padding: 0 10px;
+            }
+
+            .slider-pill--compact {
+                height: 18px;
+                width: 130px;
+            }
+
+            .control-buttons-row {
+                margin-top: 4px;
+                gap: 12px;
+            }
+        }
+
         #side-controls {
             width: 100%;
             max-width: 96%;
@@ -440,10 +485,10 @@ summary.panel-header-row .panel-caret {
             height: 100%;
         }
 
-       #side-controls > .side-panel {
-    flex: 1 1 0;
-    min-width: 0;
-}
+        #side-controls > .side-panel {
+            flex: 1 1 0;
+            min-width: 0;
+        }
 
         #planet-list-wrap {
             position: static;
@@ -861,7 +906,7 @@ summary.panel-header-row .panel-caret {
 
             summary.panel-header-row .panel-title-row {
                 flex: 1 1 100%;
-                justify-content: space-between;
+                justify-content: center;
             }
 
             summary.panel-header-row .btn-text {
@@ -929,16 +974,17 @@ summary.panel-header-row .panel-caret {
             </div>
 
            <div id="side-controls">
-    <div class="side-panel" id="notes-panel">
-        <div class="panel-header-row">
+    <details class="side-panel" id="notes-panel" open>
+        <summary class="panel-header-row">
             <span class="panel-title-row">
                 <span class="panel-title">NODES</span>
+                <span class="panel-caret" aria-hidden="true"></span>
             </span>
-            <button id="btn-play" class="btn-text btn-fixed" onclick="event.stopPropagation(); togglePlay()">PLAY</button>
-            <button id="btn-dir" class="btn-text" onclick="event.stopPropagation(); toggleDirection()">CW</button>
-            <button class="btn-text" onclick="event.stopPropagation(); syncRPMs()">SYNC</button>
-            <button class="btn-text" onclick="event.stopPropagation(); evenSpacePlanets()">EVEN</button>
-        </div>
+            <button id="btn-play" class="btn-text btn-fixed" onclick="stopSummaryToggle(event); togglePlay()">PLAY</button>
+            <button id="btn-dir" class="btn-text" onclick="stopSummaryToggle(event); toggleDirection()">CW</button>
+            <button class="btn-text" onclick="stopSummaryToggle(event); syncRPMs()">SYNC</button>
+            <button class="btn-text" onclick="stopSummaryToggle(event); evenSpacePlanets()">EVEN</button>
+        </summary>
         <div class="side-panel-content">
             <div class="panel-slider-row">
                 <div class="macro-slider-container">
@@ -959,18 +1005,19 @@ summary.panel-header-row .panel-caret {
                 </div>
             </div>
         </div>
-    </div>
+    </details>
 
-    <div class="side-panel" id="gates-panel">
-        <div class="panel-header-row">
+    <details class="side-panel" id="gates-panel" open>
+        <summary class="panel-header-row">
             <span class="panel-title-row">
                 <span class="panel-title">GATES</span>
+                <span class="panel-caret" aria-hidden="true"></span>
             </span>
-            <button id="btn-gate-play" class="btn-text btn-fixed" onclick="event.stopPropagation(); toggleGateSpin()">PLAY</button>
-            <button class="btn-text" onclick="event.stopPropagation(); randomizeGateTranspose()">RND TRNS</button>
-            <button class="btn-text" onclick="event.stopPropagation(); randomizeGateSpacing()">RND SPC</button>
-            <button id="btn-gate-dir" class="btn-text" onclick="event.stopPropagation(); toggleGateSpinDirection()">CCW</button>
-        </div>
+            <button id="btn-gate-play" class="btn-text btn-fixed" onclick="stopSummaryToggle(event); toggleGateSpin()">PLAY</button>
+            <button class="btn-text" onclick="stopSummaryToggle(event); randomizeGateTranspose()">RND TRNS</button>
+            <button class="btn-text" onclick="stopSummaryToggle(event); randomizeGateSpacing()">RND SPC</button>
+            <button id="btn-gate-dir" class="btn-text" onclick="stopSummaryToggle(event); toggleGateSpinDirection()">CCW</button>
+        </summary>
         <div class="side-panel-content">
             <div class="panel-slider-row">
                 <div class="macro-slider-container">
@@ -1002,17 +1049,18 @@ summary.panel-header-row .panel-caret {
                 </div>
             </div>
         </div>
-    </div>
+    </details>
 
-    <div class="side-panel" id="orbs-panel">
-        <div class="panel-header-row">
+    <details class="side-panel" id="orbs-panel" open>
+        <summary class="panel-header-row">
             <span class="panel-title-row">
                 <span class="panel-title">PARTICLES</span>
+                <span class="panel-caret" aria-hidden="true"></span>
             </span>
-            <button class="btn-text" onclick="event.stopPropagation(); toggleSlingshotArm()">ARM ORB</button>
-            <button class="btn-text" onclick="event.stopPropagation(); removeAllOrbs()">CLEAR</button>
-            <button class="btn-text" onclick="event.stopPropagation(); randomizeOrbSizes()">RND SIZE</button>
-        </div>
+            <button class="btn-text" onclick="stopSummaryToggle(event); toggleSlingshotArm()">ARM ORB</button>
+            <button class="btn-text" onclick="stopSummaryToggle(event); removeAllOrbs()">CLEAR</button>
+            <button class="btn-text" onclick="stopSummaryToggle(event); randomizeOrbSizes()">RND SIZE</button>
+        </summary>
         <div class="side-panel-content">
             <div class="control-row-split">
                 <div class="control-group-inline">
@@ -1049,7 +1097,7 @@ summary.panel-header-row .panel-caret {
                 </div>
             </div>
         </div>
-    </div>
+    </details>
 </div>
 
         <div id="planet-panel" class="modal">
@@ -1194,6 +1242,11 @@ function normalizeAngle(a) {
     if (a > Math.PI) a -= 2 * Math.PI;
     if (a <= -Math.PI) a += 2 * Math.PI;
     return a;
+}
+
+function stopSummaryToggle(event) {
+    event.preventDefault();
+    event.stopPropagation();
 }
 
 const ORB_SIZE_RANGE = { min: 0.25, max: 4 };
