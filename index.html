@@ -776,9 +776,9 @@ summary.panel-header-row .panel-caret {
         .key-circle.active { background: #000; color: #fff; opacity: 1; }
 
         #start-overlay {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: var(--bg-color); display: flex; flex-direction: column;
-            justify-content: center; align-items: center; z-index: 1000; cursor: pointer;
+            justify-content: center; align-items: center; z-index: 9999; cursor: pointer;
         }
 
         /* --- MOBILE OPTIMIZATIONS --- */
@@ -930,27 +930,34 @@ summary.panel-header-row .panel-caret {
     position: relative; /* Allows us to place the arrow absolutely inside */
     padding-right: 30px; /* Ensure text doesn't overlap the arrow */
 }
+            .panel-header-row, 
+.btn-text, 
+.slider-pill, 
+summary {
+    touch-action: manipulation; /* Removes tap delay & prevents canvas conflicts */
+    cursor: pointer;
+}
 
 /* 2. Create the Arrow Shape */
 .panel-header-row::after {
     content: '';
     position: absolute;
-    right: 15px;         /* Position from the right edge */
-    top: 50%;            /* Center vertically */
-    margin-top: -2px;    /* Fine-tune vertical center */
-    
-    width: 8px;          /* Size of the arrow */
+    right: 15px;
+    top: 50%;
+    margin-top: -3px; /* Adjusted slightly for the thinner border */
+    width: 8px;
     height: 8px;
     
-    /* This creates the "Chevron" shape using borders */
-    border-right: 3px solid var(--ink-color); 
-    border-bottom: 3px solid var(--ink-color);
+    /* CHANGED: Thinner lines (2px instead of 3px) */
+    border-right: 2px solid var(--ink-color);
+    border-bottom: 2px solid var(--ink-color);
     
-    /* Animation speed */
+    transform: translateY(2px) rotate(225deg); /* Up (Open) */
     transition: transform 0.25s ease;
-    
-    /* rounded corners to match your screenshot softness */
-    border-bottom-right-radius: 2px; 
+    border-bottom-right-radius: 1px; /* Slightly sharper for thinner lines */
+}
+            .side-panel.collapsed .panel-header-row::after {
+    transform: translateY(-3px) rotate(45deg); /* Down (Collapsed) */
 }
 
 /* 3. DEFAULT STATE (Expanded): Point UP */
@@ -1812,6 +1819,12 @@ function updateSidePanelsForViewport() {
         }
         orbsPanel.classList.remove('particles-panel', 'is-open');
         particlesOpen = false;
+        if (!notesPanel.dataset.initialCollapse) {
+            [notesPanel, gatesPanel, orbsPanel].forEach(p => {
+                p.classList.add('collapsed');
+                p.dataset.initialCollapse = "true";
+            });
+        }
     } else if (particlesSlot && orbsPanel.parentElement !== particlesSlot) {
         particlesSlot.appendChild(orbsPanel);
         orbsPanel.classList.add('particles-panel');
