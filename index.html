@@ -1052,8 +1052,8 @@ summary.panel-header-row .panel-caret {
                 <div class="hud-item volume-control">
                     <div class="slider-pill slider-pill--compact">
                         <span class="slider-pill__label">Volume</span>
-                        <span class="slider-pill__value" id="volume-value">100%</span>
-                        <input id="volume-range" type="range" min="0" max="1" step="0.01" value="1" data-value-target="volume-value" data-format="percent-100" oninput="updateMasterVolume(this.value); updateSliderValue(this)">
+                        <span class="slider-pill__value" id="volume-value">50%</span>
+<input id="volume-range" type="range" min="0" max="1" step="0.01" value="0.5" data-value-target="volume-value" data-format="percent-100" oninput="updateMasterVolume(this.value); updateSliderValue(this)">
                     </div>
                 </div>
 
@@ -1097,8 +1097,8 @@ summary.panel-header-row .panel-caret {
                 <div class="macro-slider-container">
                     <div class="slider-pill">
                         <span class="slider-pill__label">Volume</span>
-                        <span class="slider-pill__value" id="notes-volume-value">100%</span>
-                        <input id="notes-volume-range" type="range" min="0" max="1" step="0.01" value="1" data-value-target="notes-volume-value" data-format="percent-100" oninput="updateNodeVolume(this.value); updateSliderValue(this)">
+                        <span class="slider-pill__value" id="notes-volume-value">70%</span>
+                        <input id="notes-volume-range" type="range" min="0" max="1" step="0.01" value="0.7" data-value-target="notes-volume-value" data-format="percent-100" oninput="updateNodeVolume(this.value); updateSliderValue(this)">
                     </div>
                 </div>
             </div>
@@ -1390,8 +1390,8 @@ const STATE = {
     isRunning: false,
     isPaused: false,
     audioEnabled: true,
-    masterVolume: 1,
-    nodeVolume: 1,
+    masterVolume: .5,
+    nodeVolume: .7,
     planets: [],
     triggers: [{ id: 1, angle: Math.random() * Math.PI * 2, shift: 0 }],
     orbitRadius: 200, 
