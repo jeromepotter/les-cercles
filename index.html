@@ -69,7 +69,7 @@
 
         canvas {
             cursor: crosshair;
-            touch-action: none; 
+            touch-action: manipulation;
         }
 
         /* HUD & UI */
@@ -206,7 +206,7 @@
         }
 
         .macro-slider-container label {
-            font-size: 0.85em;
+            font-size: 0.5em;
             font-weight: 600;
             letter-spacing: 1px;
             text-transform: uppercase;
@@ -290,9 +290,9 @@ body.dark-mode select {
             opacity: 0.7;
             cursor: pointer;
             text-transform: uppercase;
-            font-size: 0.85em;
+            font-size: 0.5em;
             letter-spacing: 1px;
-            padding: 8px 10px; 
+            padding: 6px 6px; 
             white-space: nowrap;
             -webkit-tap-highlight-color: transparent;
         }
@@ -331,7 +331,7 @@ body.dark-mode select {
         details.side-panel summary {
             list-style: none;
             cursor: pointer;
-            font-size: 0.85em;
+            font-size: 0.75em;
             letter-spacing: 1px;
             text-transform: uppercase;
             font-weight: 700;
@@ -432,7 +432,7 @@ summary.panel-header-row .panel-caret {
     font-family: inherit;
     font-weight: 600;
     text-transform: uppercase;
-    font-size: 0.85em; /* Matches .btn-text */
+    font-size: 0.7em; 
     letter-spacing: 1px;
     opacity: 0.7;
     margin-right: 6px;
@@ -776,9 +776,9 @@ summary.panel-header-row .panel-caret {
         .key-circle.active { background: #000; color: #fff; opacity: 1; }
 
         #start-overlay {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: var(--bg-color); display: flex; flex-direction: column;
-            justify-content: center; align-items: center; z-index: 1000; cursor: pointer;
+            justify-content: center; align-items: center; z-index: 9999; cursor: pointer;
         }
 
         /* --- MOBILE OPTIMIZATIONS --- */
@@ -825,8 +825,8 @@ summary.panel-header-row .panel-caret {
             .macro-slider-container label { font-size: 0.7em !important; }
 
             .btn-text {
-                font-size: 0.7em;
-                padding: 8px 6px;
+                font-size: 0.5em;
+                padding: 6px 6px;
                 border: 1px solid rgba(0,0,0,0.1);
             }
             
@@ -881,9 +881,9 @@ summary.panel-header-row .panel-caret {
                 align-items: center;
             }
 
-            details.side-panel {
+           .side-panel {
                 width: 100%;
-                max-width: 320px;
+                max-width: 90%;
                 margin: 0 auto;
             }
 
@@ -923,6 +923,55 @@ summary.panel-header-row .panel-caret {
             #particles-slot {
                 display: none;
             }
+           /* --- MOBILE CARAT (ARROW) STYLES (UPDATED) --- */
+
+/* 1. Target the Title Text specifically */
+.panel-title {
+    position: relative;
+    padding-right: 20px; /* Make space for the arrow */
+    display: inline-block; /* Ensures padding works correctly */
+}
+
+/* 2. Create the Arrow attached to the text */
+.panel-title::after {
+    content: '';
+    position: absolute;
+    right: 0;            /* Anchor to the right of the TEXT, not the screen */
+    top: 50%;
+    margin-top: -4px;    /* Center vertically */
+    
+    width: 8px;
+    height: 8px;
+    
+    /* Thinner, Dynamic Lines */
+    border-right: 2px solid var(--ink-color);
+    border-bottom: 2px solid var(--ink-color);
+    
+    /* Animation */
+    transition: transform 0.25s ease;
+    border-bottom-right-radius: 1px;
+}
+
+/* 3. DEFAULT STATE (Expanded): Point UP */
+.panel-title::after {
+    transform: translateY(1px) rotate(225deg); 
+}
+
+/* 4. COLLAPSED STATE: Point DOWN */
+/* We target the parent panel's class to flip the arrow */
+.side-panel.collapsed .panel-title::after {
+    transform: translateY(-4px) rotate(45deg); 
+}
+
+/* 5. Fix Touch Priority */
+/* This ensures the browser handles taps instantly */
+.panel-title-row {
+    touch-action: manipulation;
+    cursor: pointer;
+    /* Optional: increase hit area slightly for fat fingers */
+    padding: 10px 0; 
+    margin: -10px 0; 
+}
 
             .side-panel.collapsed .side-panel-content {
                 display: none;
@@ -1003,8 +1052,8 @@ summary.panel-header-row .panel-caret {
                 <div class="hud-item volume-control">
                     <div class="slider-pill slider-pill--compact">
                         <span class="slider-pill__label">Volume</span>
-                        <span class="slider-pill__value" id="volume-value">100%</span>
-                        <input id="volume-range" type="range" min="0" max="1" step="0.01" value="1" data-value-target="volume-value" data-format="percent-100" oninput="updateMasterVolume(this.value); updateSliderValue(this)">
+                        <span class="slider-pill__value" id="volume-value">50%</span>
+<input id="volume-range" type="range" min="0" max="1" step="0.01" value="0.5" data-value-target="volume-value" data-format="percent-100" oninput="updateMasterVolume(this.value); updateSliderValue(this)">
                     </div>
                 </div>
 
@@ -1048,8 +1097,8 @@ summary.panel-header-row .panel-caret {
                 <div class="macro-slider-container">
                     <div class="slider-pill">
                         <span class="slider-pill__label">Volume</span>
-                        <span class="slider-pill__value" id="notes-volume-value">100%</span>
-                        <input id="notes-volume-range" type="range" min="0" max="1" step="0.01" value="1" data-value-target="notes-volume-value" data-format="percent-100" oninput="updateNodeVolume(this.value); updateSliderValue(this)">
+                        <span class="slider-pill__value" id="notes-volume-value">70%</span>
+                        <input id="notes-volume-range" type="range" min="0" max="1" step="0.01" value="0.7" data-value-target="notes-volume-value" data-format="percent-100" oninput="updateNodeVolume(this.value); updateSliderValue(this)">
                     </div>
                 </div>
             </div>
@@ -1113,11 +1162,11 @@ summary.panel-header-row .panel-caret {
                 <div class="control-group-inline">
                     <label>Trigger</label>
                     <select id="o-trigger-inline">
-                        <option value="notes">NOTES</option>
+                        <option value="notes">NODES</option>
                         <option value="gates">GATES</option>
                         <option value="circle">CIRCLE</option>
-                        <option value="orb" data-requires-collision="true" disabled>ORB</option>
-                        <option value="orb-circle" data-requires-collision="true" disabled>ORB + CIRCLE</option>
+                        <option value="orb" data-requires-collision="true" disabled>PARTICLES</option>
+                        <option value="orb-circle" data-requires-collision="true" disabled>PARTICLES + CIRCLE</option>
                     </select>
                 </div>
                 <div class="control-group-inline">
@@ -1341,8 +1390,8 @@ const STATE = {
     isRunning: false,
     isPaused: false,
     audioEnabled: true,
-    masterVolume: 1,
-    nodeVolume: 1,
+    masterVolume: .5,
+    nodeVolume: .7,
     planets: [],
     triggers: [{ id: 1, angle: Math.random() * Math.PI * 2, shift: 0 }],
     orbitRadius: 200, 
@@ -1724,7 +1773,14 @@ let canvasW, canvasH, centerX, centerY;
 let isMobileLayout = null;
 let particlesOpen = false;
 
+let lastWidth = window.innerWidth; // Track the width
+
 function resize() {
+    const newWidth = window.innerWidth;
+    if (window.innerWidth <= 768 && newWidth === lastWidth) {
+        return;
+    }
+    lastWidth = newWidth;
     canvasW = window.innerWidth;
     canvasH = window.innerHeight;
     const isMobile = canvasW < 768;
@@ -1771,6 +1827,12 @@ function updateSidePanelsForViewport() {
         }
         orbsPanel.classList.remove('particles-panel', 'is-open');
         particlesOpen = false;
+        if (!notesPanel.dataset.initialCollapse) {
+            [notesPanel, gatesPanel, orbsPanel].forEach(p => {
+                p.classList.add('collapsed');
+                p.dataset.initialCollapse = "true";
+            });
+        }
     } else if (particlesSlot && orbsPanel.parentElement !== particlesSlot) {
         particlesSlot.appendChild(orbsPanel);
         orbsPanel.classList.add('particles-panel');
@@ -2784,7 +2846,7 @@ function handleStart(x, y, altKey = false) {
             STATE.slingshot.isDragging = true;
             STATE.slingshot.pullX = mx;
             STATE.slingshot.pullY = my;
-            return;
+            return true;
         }
     }
 
@@ -2798,7 +2860,7 @@ function handleStart(x, y, altKey = false) {
         dragTarget = { type: 'orb', obj: hitOrb };
         isDragging = true;
         dragStartTime = Date.now();
-        return;
+        return true;
     }
 
     // 2. PLANET DRAG
@@ -2814,7 +2876,7 @@ function handleStart(x, y, altKey = false) {
         dragTarget = { type: 'planet', obj: hitPlanet };
         isDragging = true;
         dragStartTime = Date.now();
-        return; 
+        return true; 
     }
 
     // 3. TRIGGER DRAG
@@ -2848,7 +2910,9 @@ function handleStart(x, y, altKey = false) {
         }
         isDragging = true;
         dragStartTime = Date.now();
+        return true;
     }
+    return false;
 }
 
 function handleMove(x, y) {
@@ -3028,8 +3092,22 @@ canvas.addEventListener('mouseup', handleEnd);
 
 // TOUCH EVENTS
 canvas.addEventListener('touchstart', e => {
-    e.preventDefault();
-    handleStart(e.touches[0].clientX, e.touches[0].clientY, false);
+    // 1. Try to start an interaction
+    const handled = handleStart(e.touches[0].clientX, e.touches[0].clientY, false);
+    
+    // 2. If we hit a game object (handled is true), BLOCK scrolling.
+    //    If we hit empty space (handled is false), ALLOW scrolling.
+    if (handled) {
+        e.preventDefault();
+    }
+}, {passive: false});
+
+canvas.addEventListener('touchmove', e => {
+    // Only block scrolling if we are actively dragging something
+    if (isDragging || STATE.slingshot.isDragging) {
+        e.preventDefault();
+        handleMove(e.touches[0].clientX, e.touches[0].clientY);
+    }
 }, {passive: false});
 
 canvas.addEventListener('touchmove', e => {
