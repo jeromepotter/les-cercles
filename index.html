@@ -923,53 +923,54 @@ summary.panel-header-row .panel-caret {
             #particles-slot {
                 display: none;
             }
-            /* --- MOBILE CARAT (ARROW) STYLES --- */
+           /* --- MOBILE CARAT (ARROW) STYLES (UPDATED) --- */
 
-/* 1. Position the header row to act as an anchor */
-.panel-header-row {
-    position: relative; /* Allows us to place the arrow absolutely inside */
-    padding-right: 30px; /* Ensure text doesn't overlap the arrow */
-}
-            .panel-header-row, 
-.btn-text, 
-.slider-pill, 
-summary {
-    touch-action: manipulation; /* Removes tap delay & prevents canvas conflicts */
-    cursor: pointer;
+/* 1. Target the Title Text specifically */
+.panel-title {
+    position: relative;
+    padding-right: 20px; /* Make space for the arrow */
+    display: inline-block; /* Ensures padding works correctly */
 }
 
-/* 2. Create the Arrow Shape */
-.panel-header-row::after {
+/* 2. Create the Arrow attached to the text */
+.panel-title::after {
     content: '';
     position: absolute;
-    right: 15px;
+    right: 0;            /* Anchor to the right of the TEXT, not the screen */
     top: 50%;
-    margin-top: -3px; /* Adjusted slightly for the thinner border */
+    margin-top: -4px;    /* Center vertically */
+    
     width: 8px;
     height: 8px;
     
-    /* CHANGED: Thinner lines (2px instead of 3px) */
+    /* Thinner, Dynamic Lines */
     border-right: 2px solid var(--ink-color);
     border-bottom: 2px solid var(--ink-color);
     
-    transform: translateY(2px) rotate(225deg); /* Up (Open) */
+    /* Animation */
     transition: transform 0.25s ease;
-    border-bottom-right-radius: 1px; /* Slightly sharper for thinner lines */
-}
-            .side-panel.collapsed .panel-header-row::after {
-    transform: translateY(-3px) rotate(45deg); /* Down (Collapsed) */
+    border-bottom-right-radius: 1px;
 }
 
 /* 3. DEFAULT STATE (Expanded): Point UP */
-/* This matches your 'Screen Shot 12.29.01' (Up Arrow) */
-.panel-header-row::after {
-    transform: translateY(2px) rotate(225deg); 
+.panel-title::after {
+    transform: translateY(1px) rotate(225deg); 
 }
 
 /* 4. COLLAPSED STATE: Point DOWN */
-/* This matches your 'Screen Shot 12.28.50' (Down Arrow) */
-.side-panel.collapsed .panel-header-row::after {
+/* We target the parent panel's class to flip the arrow */
+.side-panel.collapsed .panel-title::after {
     transform: translateY(-4px) rotate(45deg); 
+}
+
+/* 5. Fix Touch Priority */
+/* This ensures the browser handles taps instantly */
+.panel-title-row {
+    touch-action: manipulation;
+    cursor: pointer;
+    /* Optional: increase hit area slightly for fat fingers */
+    padding: 10px 0; 
+    margin: -10px 0; 
 }
 
             .side-panel.collapsed .side-panel-content {
