@@ -80,7 +80,7 @@
             right: 20px;
             display: flex;
             gap: 20px;
-            align-items: center;
+            align-items: flex-start;
             font-weight: 500;
             letter-spacing: 0.5px;
             z-index: 10;
@@ -91,6 +91,16 @@
             display: flex;
             align-items: center;
             gap: 16px;
+        }
+
+        #particles-slot {
+            display: flex;
+            align-items: flex-start;
+        }
+
+        #particles-slot .side-panel {
+            width: 260px;
+            max-width: 30vw;
         }
 
         h1.title {
@@ -881,6 +891,41 @@ summary.panel-header-row .panel-caret {
                 height: auto;
             }
         }
+
+        @media (min-width: 769px) {
+            #side-controls {
+                position: absolute;
+                top: 50%;
+                left: 32px;
+                right: 32px;
+                transform: translateY(-50%);
+                justify-content: space-between;
+                align-items: center;
+                gap: 32px;
+                pointer-events: none;
+            }
+
+            #side-controls > .side-panel {
+                max-width: 280px;
+                pointer-events: auto;
+            }
+
+            #controls-footer {
+                height: 0;
+                min-height: 0;
+                padding: 0;
+                margin: 0;
+            }
+
+            #planet-list-wrap {
+                position: fixed;
+                left: 50%;
+                bottom: 24px;
+                transform: translateX(-50%);
+                margin: 0;
+                pointer-events: auto;
+            }
+        }
     </style>
 </head>
 <body>
@@ -915,6 +960,7 @@ summary.panel-header-row .panel-caret {
                     </div>
                 </div>
 
+                <div id="particles-slot"></div>
             </div>
         </div>
 
@@ -1633,7 +1679,7 @@ function resize() {
     canvasH = window.innerHeight;
     const isMobile = canvasW < 768;
     const footer = document.getElementById('controls-footer');
-    const footerHeight = footer ? footer.offsetHeight : 0;
+    const footerHeight = isMobile && footer ? footer.offsetHeight : 0;
     const minCanvas = Math.floor(window.innerHeight * 0.68);
     const available = window.innerHeight - footerHeight;
     const displayHeight = isMobile ? Math.max(minCanvas, available) : Math.max(available, 200);
@@ -1645,7 +1691,11 @@ function resize() {
     centerX = canvasW/2;
     centerY = isMobile ? canvasH * 0.5 : canvasH / 2;
     const dim = Math.min(canvasW, canvasH);
-    STATE.orbitRadius = dim * (dim < 600 ? 0.33 : 0.35);
+    if (isMobile) {
+        STATE.orbitRadius = dim * (dim < 600 ? 0.33 : 0.35);
+    } else {
+        STATE.orbitRadius = dim * (dim < 600 ? 0.38 : 0.42);
+    }
     updateSidePanelsForViewport();
 }
 window.addEventListener('resize', resize);
@@ -1658,10 +1708,20 @@ function updateSidePanelsForViewport() {
     const notesPanel = document.getElementById('notes-panel');
     const gatesPanel = document.getElementById('gates-panel');
     const orbsPanel = document.getElementById('orbs-panel');
+    const sideControls = document.getElementById('side-controls');
+    const particlesSlot = document.getElementById('particles-slot');
     if (!notesPanel || !gatesPanel || !orbsPanel) return;
     notesPanel.open = isMobile;
     gatesPanel.open = isMobile;
     orbsPanel.open = isMobile;
+
+    if (isMobile) {
+        if (sideControls && orbsPanel.parentElement !== sideControls) {
+            sideControls.appendChild(orbsPanel);
+        }
+    } else if (particlesSlot && orbsPanel.parentElement !== particlesSlot) {
+        particlesSlot.appendChild(orbsPanel);
+    }
 }
 
 function toggleAudio() { AudioEngine.toggle(); }
