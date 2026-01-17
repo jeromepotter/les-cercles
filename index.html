@@ -80,7 +80,7 @@
             right: 20px;
             display: flex;
             gap: 20px;
-            align-items: center;
+            align-items: flex-start;
             font-weight: 500;
             letter-spacing: 0.5px;
             z-index: 10;
@@ -91,6 +91,44 @@
             display: flex;
             align-items: center;
             gap: 16px;
+        }
+
+        #particles-slot {
+            display: flex;
+            align-items: flex-start;
+            position: relative;
+        }
+
+        #particles-button {
+            cursor: pointer;
+        }
+
+        #particles-slot .side-panel {
+            width: 260px;
+            max-width: 30vw;
+        }
+
+        #particles-slot .particles-panel {
+            position: absolute;
+            top: calc(100% + 8px);
+            right: 0;
+            display: none;
+            z-index: 40;
+        }
+
+        #particles-slot .particles-panel.is-open {
+            display: flex;
+        }
+
+        #particles-slot .particles-panel .control-row-split {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 10px;
+        }
+
+        #particles-slot .particles-panel .control-group-inline {
+            width: 100%;
+            justify-content: space-between;
         }
 
         h1.title {
@@ -880,6 +918,61 @@ summary.panel-header-row .panel-caret {
                 overflow: auto;
                 height: auto;
             }
+
+            #particles-button,
+            #particles-slot {
+                display: none;
+            }
+
+            .side-panel.collapsed .side-panel-content {
+                display: none;
+            }
+        }
+
+        @media (min-width: 769px) {
+            #side-controls {
+                position: absolute;
+                top: 50%;
+                left: 32px;
+                right: 32px;
+                transform: translateY(-50%);
+                justify-content: space-between;
+                align-items: center;
+                gap: 32px;
+                pointer-events: none;
+            }
+
+            #side-controls > .side-panel {
+                max-width: 280px;
+                pointer-events: auto;
+            }
+
+            #notes-panel,
+            #gates-panel {
+                opacity: 0.5;
+                transition: opacity 0.2s ease;
+            }
+
+            #notes-panel:hover,
+            #gates-panel:hover {
+                opacity: 0.95;
+            }
+
+            #controls-footer {
+                height: 0;
+                min-height: 0;
+                padding: 0;
+                margin: 0;
+            }
+
+            #planet-list-wrap {
+                position: fixed;
+                left: 50%;
+                bottom: 24px;
+                transform: translateX(-50%);
+                margin: 0;
+                pointer-events: auto;
+            }
         }
     </style>
 </head>
@@ -915,6 +1008,8 @@ summary.panel-header-row .panel-caret {
                     </div>
                 </div>
 
+                <div class="hud-item" id="particles-button" onclick="toggleParticlesPanel(event)">PARTICLES</div>
+                <div id="particles-slot"></div>
             </div>
         </div>
 
@@ -1627,13 +1722,14 @@ const canvas = document.getElementById('mainCanvas');
 const ctx = canvas.getContext('2d');
 let canvasW, canvasH, centerX, centerY;
 let isMobileLayout = null;
+let particlesOpen = false;
 
 function resize() {
     canvasW = window.innerWidth;
     canvasH = window.innerHeight;
     const isMobile = canvasW < 768;
     const footer = document.getElementById('controls-footer');
-    const footerHeight = footer ? footer.offsetHeight : 0;
+    const footerHeight = isMobile && footer ? footer.offsetHeight : 0;
     const minCanvas = Math.floor(window.innerHeight * 0.68);
     const available = window.innerHeight - footerHeight;
     const displayHeight = isMobile ? Math.max(minCanvas, available) : Math.max(available, 200);
@@ -1645,7 +1741,11 @@ function resize() {
     centerX = canvasW/2;
     centerY = isMobile ? canvasH * 0.5 : canvasH / 2;
     const dim = Math.min(canvasW, canvasH);
-    STATE.orbitRadius = dim * (dim < 600 ? 0.33 : 0.35);
+    if (isMobile) {
+        STATE.orbitRadius = dim * (dim < 600 ? 0.33 : 0.35);
+    } else {
+        STATE.orbitRadius = dim * (dim < 600 ? 0.38 : 0.42);
+    }
     updateSidePanelsForViewport();
 }
 window.addEventListener('resize', resize);
@@ -1658,11 +1758,69 @@ function updateSidePanelsForViewport() {
     const notesPanel = document.getElementById('notes-panel');
     const gatesPanel = document.getElementById('gates-panel');
     const orbsPanel = document.getElementById('orbs-panel');
+    const sideControls = document.getElementById('side-controls');
+    const particlesSlot = document.getElementById('particles-slot');
     if (!notesPanel || !gatesPanel || !orbsPanel) return;
     notesPanel.open = isMobile;
     gatesPanel.open = isMobile;
     orbsPanel.open = isMobile;
+
+    if (isMobile) {
+        if (sideControls && orbsPanel.parentElement !== sideControls) {
+            sideControls.appendChild(orbsPanel);
+        }
+        orbsPanel.classList.remove('particles-panel', 'is-open');
+        particlesOpen = false;
+    } else if (particlesSlot && orbsPanel.parentElement !== particlesSlot) {
+        particlesSlot.appendChild(orbsPanel);
+        orbsPanel.classList.add('particles-panel');
+        orbsPanel.classList.remove('is-open');
+        particlesOpen = false;
+    }
+    setupMobilePanelToggles(isMobile);
 }
+
+function setupMobilePanelToggles(isMobile) {
+    const titleRows = document.querySelectorAll('.panel-title-row');
+    titleRows.forEach((row) => {
+        if (row.dataset.collapseBound === 'true') return;
+        row.dataset.collapseBound = 'true';
+        row.addEventListener('click', () => {
+            if (window.innerWidth > 768) return;
+            const panel = row.closest('.side-panel');
+            if (!panel) return;
+            panel.classList.toggle('collapsed');
+        });
+    });
+
+    if (!isMobile) {
+        document.querySelectorAll('.side-panel.collapsed').forEach((panel) => {
+            panel.classList.remove('collapsed');
+        });
+    }
+}
+
+function setParticlesPanelOpen(isOpen) {
+    const orbsPanel = document.getElementById('orbs-panel');
+    if (!orbsPanel || !orbsPanel.classList.contains('particles-panel')) return;
+    particlesOpen = isOpen;
+    orbsPanel.classList.toggle('is-open', isOpen);
+}
+
+function toggleParticlesPanel(event) {
+    if (event) event.stopPropagation();
+    if (window.innerWidth <= 768) return;
+    setParticlesPanelOpen(!particlesOpen);
+}
+
+document.addEventListener('click', (event) => {
+    if (window.innerWidth <= 768) return;
+    const button = document.getElementById('particles-button');
+    const slot = document.getElementById('particles-slot');
+    if (!button || !slot) return;
+    if (slot.contains(event.target) || button.contains(event.target)) return;
+    setParticlesPanelOpen(false);
+});
 
 function toggleAudio() { AudioEngine.toggle(); }
 
