@@ -69,7 +69,7 @@
 
         canvas {
             cursor: crosshair;
-            touch-action: none; 
+            touch-action: manipulation;
         }
 
         /* HUD & UI */
@@ -1773,7 +1773,14 @@ let canvasW, canvasH, centerX, centerY;
 let isMobileLayout = null;
 let particlesOpen = false;
 
+let lastWidth = window.innerWidth; // Track the width
+
 function resize() {
+    const newWidth = window.innerWidth;
+    if (window.innerWidth <= 768 && newWidth === lastWidth) {
+        return;
+    }
+    lastWidth = newWidth;
     canvasW = window.innerWidth;
     canvasH = window.innerHeight;
     const isMobile = canvasW < 768;
@@ -2839,7 +2846,7 @@ function handleStart(x, y, altKey = false) {
             STATE.slingshot.isDragging = true;
             STATE.slingshot.pullX = mx;
             STATE.slingshot.pullY = my;
-            return;
+            return true;
         }
     }
 
@@ -2853,7 +2860,7 @@ function handleStart(x, y, altKey = false) {
         dragTarget = { type: 'orb', obj: hitOrb };
         isDragging = true;
         dragStartTime = Date.now();
-        return;
+        return true;
     }
 
     // 2. PLANET DRAG
@@ -2869,7 +2876,7 @@ function handleStart(x, y, altKey = false) {
         dragTarget = { type: 'planet', obj: hitPlanet };
         isDragging = true;
         dragStartTime = Date.now();
-        return; 
+        return true; 
     }
 
     // 3. TRIGGER DRAG
@@ -2903,7 +2910,9 @@ function handleStart(x, y, altKey = false) {
         }
         isDragging = true;
         dragStartTime = Date.now();
+        return true;
     }
+    return false;
 }
 
 function handleMove(x, y) {
@@ -3083,8 +3092,22 @@ canvas.addEventListener('mouseup', handleEnd);
 
 // TOUCH EVENTS
 canvas.addEventListener('touchstart', e => {
-    e.preventDefault();
-    handleStart(e.touches[0].clientX, e.touches[0].clientY, false);
+    // 1. Try to start an interaction
+    const handled = handleStart(e.touches[0].clientX, e.touches[0].clientY, false);
+    
+    // 2. If we hit a game object (handled is true), BLOCK scrolling.
+    //    If we hit empty space (handled is false), ALLOW scrolling.
+    if (handled) {
+        e.preventDefault();
+    }
+}, {passive: false});
+
+canvas.addEventListener('touchmove', e => {
+    // Only block scrolling if we are actively dragging something
+    if (isDragging || STATE.slingshot.isDragging) {
+        e.preventDefault();
+        handleMove(e.touches[0].clientX, e.touches[0].clientY);
+    }
 }, {passive: false});
 
 canvas.addEventListener('touchmove', e => {
